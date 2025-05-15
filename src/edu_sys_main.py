@@ -387,7 +387,7 @@ def logout():
 # 页面路由
 @app.route('/courses')
 @login_required
-@role_required(['teacher', 'admin'])  # 允许教师和管理员访问课程管理
+@role_required(['admin'])  # 只允许管理员访问课程管理
 def show_courses():
     return render_template('courses.html')
 
@@ -405,17 +405,17 @@ def show_teachers():
 
 @app.route('/progress')
 @login_required
-@role_required(['teacher', 'admin'])  # 教师和管理员可以管理成绩
+@role_required(['teacher'])  # 只允许教师访问成绩管理
 def show_progress():
     return render_template('progress.html', role=session.get('role', ''))
 
 @app.route('/interaction')
 @login_required
+@role_required(['teacher'])  # 只允许教师访问作业管理
 def show_interaction():
-    # 教师可以发布作业，学生可以查看作业
     return render_template('interaction.html', role=session.get('role', ''))
 
-# 添加学生专有页面路由
+# 学生专有页面路由
 @app.route('/student/courses')
 @login_required
 @role_required(['student'])  # 只允许学生角色访问
@@ -434,6 +434,20 @@ def show_student_progress():
 @role_required(['student'])
 def show_student_assignments():
     return render_template('student/assignments.html')
+
+# 学生个人资料页面路由
+@app.route('/student/profile')
+@login_required
+@role_required(['student'])
+def show_student_profile():
+    return render_template('student/profile.html')
+
+# 教师个人资料页面路由
+@app.route('/teacher/profile')
+@login_required
+@role_required(['teacher'])
+def show_teacher_profile():
+    return render_template('teacher/profile.html')
 
 # API路由
 @app.route('/api/courses', methods=['GET'])
@@ -830,6 +844,97 @@ def get_teacher_courses(teacher_id):
         })
     except Exception as e:
         print('获取教师课程失败:', e)
+        return jsonify({
+            'success': False,
+            'message': str(e),
+            'data': []
+        }), 500
+    finally:
+        conn.close()
+
+# 添加新的API路由，获取当前登录教师的课程
+@app.route('/api/teacher-courses/current', methods=['GET'])
+@login_required
+@role_required(['teacher'])  # 只允许教师访问
+def get_current_teacher_courses():
+    """获取当前登录教师的所有课程"""
+    try:
+        teacher_id = session.get('teacher_id')
+        if not teacher_id:
+            return jsonify({
+                'success': False,
+                'message': '未找到教师信息'
+            }), 404
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT c.* 
+            FROM courses c
+            JOIN teacher_courses tc ON c.id = tc.course_id
+            JOIN teachers t ON tc.teacher_id = t.id
+            WHERE t.teacher_id = ?
+        ''', (teacher_id,))
+        
+        courses = [dict(row) for row in cursor.fetchall()]
+        return jsonify({
+            'success': True,
+            'data': courses,
+            'message': '获取教师课程成功'
+        })
+    except Exception as e:
+        print('获取当前教师课程失败:', e)
+        return jsonify({
+            'success': False,
+            'message': str(e),
+            'data': []
+        }), 500
+    finally:
+        conn.close()
+
+# 获取特定课程的学生列表
+@app.route('/api/courses/<int:course_id>/students', methods=['GET'])
+@login_required
+def get_course_students(course_id):
+    """获取选了特定课程的所有学生"""
+    try:
+        # 如果是教师，验证该课程是否是自己教授的
+        if session.get('role') == 'teacher':
+            teacher_id = session.get('teacher_id')
+            conn = get_db()
+            cursor = conn.cursor()
+            
+            cursor.execute('''
+                SELECT 1 FROM teacher_courses tc
+                JOIN teachers t ON tc.teacher_id = t.id
+                WHERE t.teacher_id = ? AND tc.course_id = ?
+            ''', (teacher_id, course_id))
+            
+            if not cursor.fetchone():
+                return jsonify({
+                    'success': False,
+                    'message': '您没有权限查看该课程的学生'
+                }), 403
+            
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT s.* 
+            FROM students s
+            JOIN student_courses sc ON s.id = sc.student_id
+            WHERE sc.course_id = ?
+        ''', (course_id,))
+        
+        students = [dict(row) for row in cursor.fetchall()]
+        return jsonify({
+            'success': True,
+            'data': students,
+            'message': '获取课程学生成功'
+        })
+    except Exception as e:
+        print('获取课程学生失败:', e)
         return jsonify({
             'success': False,
             'message': str(e),
@@ -1605,6 +1710,240 @@ def get_current_user():
         'success': True,
         'data': user_data
     })
+
+# 获取学生个人资料API
+@app.route('/api/students/<student_id>/profile', methods=['GET'])
+@login_required
+def get_student_profile(student_id):
+    # 检查权限：只能查看自己的资料
+    if session.get('role') == 'student' and session.get('student_id') != student_id:
+        return jsonify({
+            'success': False,
+            'message': '您只能查看自己的个人资料'
+        }), 403
+        
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # 获取学生信息
+        cursor.execute('SELECT * FROM students WHERE student_id = ?', (student_id,))
+        student = cursor.fetchone()
+        
+        if not student:
+            return jsonify({
+                'success': False,
+                'message': '找不到该学生信息'
+            }), 404
+            
+        return jsonify({
+            'success': True,
+            'data': dict(student),
+            'message': '获取学生个人资料成功'
+        })
+    except Exception as e:
+        print('获取学生个人资料失败:', e)
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    finally:
+        conn.close()
+
+# 更新学生个人资料API（包括密码修改）
+@app.route('/api/students/<student_id>/profile', methods=['PUT'])
+@login_required
+def update_student_profile(student_id):
+    # 检查权限：只能修改自己的资料
+    if session.get('role') == 'student' and session.get('student_id') != student_id:
+        return jsonify({
+            'success': False,
+            'message': '您只能修改自己的个人资料'
+        }), 403
+        
+    try:
+        data = request.get_json()
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # 检查学生是否存在
+        cursor.execute('SELECT * FROM students WHERE student_id = ?', (student_id,))
+        student = cursor.fetchone()
+        
+        if not student:
+            return jsonify({
+                'success': False,
+                'message': '找不到该学生信息'
+            }), 404
+            
+        # 如果要修改学号，检查新学号是否已被占用（且不是自己）
+        if data['student_id'] != student_id:
+            cursor.execute('SELECT 1 FROM students WHERE student_id = ? AND id != ?', 
+                          (data['student_id'], student['id']))
+            if cursor.fetchone():
+                return jsonify({
+                    'success': False,
+                    'message': '该学号已被其他学生使用'
+                }), 400
+                
+        # 更新学生信息
+        cursor.execute('''
+            UPDATE students 
+            SET name = ?, student_id = ?, enrollment_year = ?
+            WHERE student_id = ?
+        ''', (data['name'], data['student_id'], data.get('enrollment_year'), student_id))
+        
+        # 如果提供了新密码，更新密码
+        if 'new_password' in data and data['new_password']:
+            cursor.execute('''
+                UPDATE users 
+                SET password = ?
+                WHERE username = ?
+            ''', (data['new_password'], student['name']))
+            
+        # 如果修改了学号，更新session中的学号
+        if data['student_id'] != student_id:
+            session['student_id'] = data['student_id']
+            
+        conn.commit()
+        
+        # 获取更新后的信息
+        cursor.execute('SELECT * FROM students WHERE student_id = ?', (data['student_id'],))
+        updated_student = cursor.fetchone()
+        
+        return jsonify({
+            'success': True,
+            'data': dict(updated_student) if updated_student else None,
+            'message': '学生个人资料更新成功'
+        })
+    except Exception as e:
+        print('更新学生个人资料失败:', e)
+        if conn:
+            conn.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
+
+# 获取教师个人资料API
+@app.route('/api/teachers/<teacher_id>/profile', methods=['GET'])
+@login_required
+def get_teacher_profile(teacher_id):
+    # 检查权限：只能查看自己的资料
+    if session.get('role') == 'teacher' and session.get('teacher_id') != teacher_id:
+        return jsonify({
+            'success': False,
+            'message': '您只能查看自己的个人资料'
+        }), 403
+        
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # 获取教师信息
+        cursor.execute('SELECT * FROM teachers WHERE teacher_id = ?', (teacher_id,))
+        teacher = cursor.fetchone()
+        
+        if not teacher:
+            return jsonify({
+                'success': False,
+                'message': '找不到该教师信息'
+            }), 404
+            
+        return jsonify({
+            'success': True,
+            'data': dict(teacher),
+            'message': '获取教师个人资料成功'
+        })
+    except Exception as e:
+        print('获取教师个人资料失败:', e)
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    finally:
+        conn.close()
+
+# 更新教师个人资料API（包括密码修改）
+@app.route('/api/teachers/<teacher_id>/profile', methods=['PUT'])
+@login_required
+def update_teacher_profile(teacher_id):
+    # 检查权限：只能修改自己的资料
+    if session.get('role') == 'teacher' and session.get('teacher_id') != teacher_id:
+        return jsonify({
+            'success': False,
+            'message': '您只能修改自己的个人资料'
+        }), 403
+        
+    try:
+        data = request.get_json()
+        conn = get_db()
+        cursor = conn.cursor()
+        
+        # 检查教师是否存在
+        cursor.execute('SELECT * FROM teachers WHERE teacher_id = ?', (teacher_id,))
+        teacher = cursor.fetchone()
+        
+        if not teacher:
+            return jsonify({
+                'success': False,
+                'message': '找不到该教师信息'
+            }), 404
+            
+        # 如果要修改教师ID，检查新ID是否已被占用（且不是自己）
+        if data['teacher_id'] != teacher_id:
+            cursor.execute('SELECT 1 FROM teachers WHERE teacher_id = ? AND id != ?', 
+                          (data['teacher_id'], teacher['id']))
+            if cursor.fetchone():
+                return jsonify({
+                    'success': False,
+                    'message': '该教师ID已被其他教师使用'
+                }), 400
+                
+        # 更新教师信息
+        cursor.execute('''
+            UPDATE teachers 
+            SET name = ?, teacher_id = ?
+            WHERE teacher_id = ?
+        ''', (data['name'], data['teacher_id'], teacher_id))
+        
+        # 如果提供了新密码，更新密码
+        if 'new_password' in data and data['new_password']:
+            cursor.execute('''
+                UPDATE users 
+                SET password = ?
+                WHERE username = ?
+            ''', (data['new_password'], teacher['name']))
+            
+        # 如果修改了教师ID，更新session中的教师ID
+        if data['teacher_id'] != teacher_id:
+            session['teacher_id'] = data['teacher_id']
+            
+        conn.commit()
+        
+        # 获取更新后的信息
+        cursor.execute('SELECT * FROM teachers WHERE teacher_id = ?', (data['teacher_id'],))
+        updated_teacher = cursor.fetchone()
+        
+        return jsonify({
+            'success': True,
+            'data': dict(updated_teacher) if updated_teacher else None,
+            'message': '教师个人资料更新成功'
+        })
+    except Exception as e:
+        print('更新教师个人资料失败:', e)
+        if conn:
+            conn.rollback()
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+    finally:
+        if conn:
+            conn.close()
 
 if __name__ == '__main__':
     app.run(debug=True)

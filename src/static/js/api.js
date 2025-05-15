@@ -123,6 +123,35 @@ window.getStudentCourses = async function (studentId) {
     }
 }
 
+// 获取当前学生的个人资料
+window.getStudentProfile = async function (studentId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/students/${studentId}/profile`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取学生个人资料失败', error);
+    }
+}
+
+// 更新学生个人资料
+window.updateStudentProfile = async function (studentId, profileData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/students/${studentId}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(profileData)
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('更新学生个人资料失败', error);
+    }
+}
+
 // 获取当前登录的学生ID
 window.getCurrentStudentId = async function () {
     try {
@@ -208,6 +237,35 @@ window.updateTeacher = async function (teacherId, teacherData) {
     }
 }
 
+// 获取当前教师的个人资料
+window.getTeacherProfile = async function (teacherId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/teachers/${teacherId}/profile`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取教师个人资料失败', error);
+    }
+}
+
+// 更新教师个人资料
+window.updateTeacherProfile = async function (teacherId, profileData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/teachers/${teacherId}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(profileData)
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('更新教师个人资料失败', error);
+    }
+}
+
 window.addTeacherCourse = async function (teacherId, courseId) {
     try {
         console.log('安排教师课程:', { teacherId, courseId });
@@ -234,6 +292,32 @@ window.getTeacherCourses = async function (teacherId) {
         return handleResponse(response);
     } catch (error) {
         handleError('获取教师课程失败', error);
+    }
+}
+
+// 获取当前教师的课程
+window.getCurrentTeacherCourses = async function () {
+    try {
+        console.log('获取当前教师的课程...');
+        const response = await fetch(`${API_BASE_URL}/teacher-courses/current`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取当前教师课程失败', error);
+    }
+}
+
+// 获取课程的学生
+window.getCourseStudents = async function (courseId) {
+    try {
+        console.log('获取课程学生:', courseId);
+        const response = await fetch(`${API_BASE_URL}/courses/${courseId}/students`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取课程学生失败', error);
     }
 }
 
@@ -482,6 +566,64 @@ window.updateStudentSelectors = async function () {
         }
     } catch (error) {
         console.error('更新学生选择器失败:', error);
+    }
+}
+
+// 更新学生列表显示
+window.updateStudentLists = async function () {
+    try {
+        const response = await getStudents();
+        if (response && response.success) {
+            // 如果页面上有学生表格，更新它
+            if ($('#studentTableBody').length) {
+                let html = '';
+                response.data.forEach(student => {
+                    html += `
+                        <tr>
+                            <td>${student.name}</td>
+                            <td>${student.student_id}</td>
+                            <td>${student.enrollment_year || '未填写'}</td>
+                        </tr>
+                    `;
+                });
+                $('#studentTableBody').html(html);
+            }
+        }
+    } catch (error) {
+        console.error('更新学生列表失败:', error);
+    }
+}
+
+// 更新学生课程信息
+window.updateStudentCourses = async function () {
+    try {
+        const studentId = $('#studentSelect').val();
+        if (studentId) {
+            const response = await getStudentCourses(studentId);
+            if (response && response.success) {
+                // 如果页面上有学生课程表格，更新它
+                if ($('#studentCoursesTableBody').length) {
+                    let html = '';
+                    if (response.data && response.data.length > 0) {
+                        response.data.forEach(course => {
+                            html += `
+                                <tr>
+                                    <td>${course.name}</td>
+                                    <td>${course.learn_time}</td>
+                                    <td>${course.credit}</td>
+                                    <td>${course.times || ''}</td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        html = '<tr><td colspan="4">暂无课程数据</td></tr>';
+                    }
+                    $('#studentCoursesTableBody').html(html);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('更新学生课程失败:', error);
     }
 }
 

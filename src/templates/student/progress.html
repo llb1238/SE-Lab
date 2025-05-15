@@ -3,67 +3,267 @@
 
 <head>
   <title>我的成绩</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="/static/css/animations.css" rel="stylesheet">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="/static/js/api.js"></script>
   <style>
+    body {
+      font-family: 'Microsoft YaHei', sans-serif;
+      background-color: #f8f9fc;
+    }
+
     .content-area {
-      padding: 20px;
+      padding: 25px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      margin-bottom: 25px;
+      border-bottom: 1px solid #e3e6f0;
+      padding-bottom: 15px;
+    }
+
+    .page-header h3 {
+      font-weight: 600;
+      color: #4e73df;
+      margin: 0;
     }
 
     .stats-card {
-      background-color: #f8f9fa;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 5px;
+      background-color: white;
+      padding: 20px;
+      margin-bottom: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .stats-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
+    }
+
+    .stats-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e3e6f0;
+    }
+
+    .stats-header h4 {
+      color: #5a5c69;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .stats-icon {
+      font-size: 1.5rem;
+      color: #4e73df;
+    }
+
+    .stats-value {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .stats-value span:first-child {
+      color: #5a5c69;
+      font-weight: 500;
+    }
+
+    .stats-value span:last-child {
+      font-weight: 700;
+      font-size: 1.1rem;
     }
 
     .course-card {
+      background-color: white;
       margin-bottom: 20px;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+      transition: all 0.3s ease;
+    }
+
+    .course-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 0.5rem 2rem 0 rgba(58, 59, 69, 0.2);
+    }
+
+    .course-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #e3e6f0;
+    }
+
+    .course-header h5 {
+      color: #4e73df;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .course-credit {
+      font-weight: 500;
+      color: #858796;
+    }
+
+    .grade-row {
+      display: flex;
+      flex-wrap: wrap;
+      margin: 0 -10px;
+    }
+
+    .grade-col {
+      flex: 1;
+      padding: 0 10px;
+      min-width: 160px;
+      margin-bottom: 15px;
+    }
+
+    .grade-box {
+      background-color: #f8f9fc;
+      border-radius: 8px;
       padding: 15px;
-      border: 1px solid #ddd;
-      border-radius: 5px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .grade-box:hover {
+      background-color: #eaecf4;
+      transform: translateY(-3px);
+      box-shadow: 0 0.15rem 0.5rem rgba(58, 59, 69, 0.15);
+    }
+
+    .grade-label {
+      color: #858796;
+      font-size: 0.85rem;
+      margin-bottom: 8px;
     }
 
     .grade-value {
-      font-weight: bold;
+      font-size: 1.5rem;
+      font-weight: 700;
     }
 
     .grade-a {
-      color: #28a745;
+      color: #1cc88a;
     }
 
     .grade-b {
-      color: #17a2b8;
+      color: #36b9cc;
     }
 
     .grade-c {
-      color: #ffc107;
+      color: #f6c23e;
     }
 
     .grade-d {
-      color: #dc3545;
+      color: #e74a3b;
+    }
+
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      margin: 20px -10px;
+    }
+
+    .chart-wrapper {
+      flex: 1;
+      min-width: 300px;
+      padding: 10px;
+      position: relative;
+    }
+
+    .chart-card {
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 768px) {
+      .grade-col {
+        min-width: calc(50% - 20px);
+      }
+
+      .chart-wrapper {
+        min-width: 100%;
+      }
+
+      .chart-container {
+        height: 250px;
+      }
     }
   </style>
 </head>
 
 <body>
   <div class="content-area">
-    <h3>我的成绩</h3>
+    <div class="page-header">
+      <h3><i class="fas fa-graduation-cap me-2"></i>我的成绩</h3>
+    </div>
 
     <!-- 学习统计 -->
-    <div class="stats-card">
-      <h4>学习统计</h4>
+    <div class="stats-card fade-in">
+      <div class="stats-header">
+        <h4>学习统计</h4>
+        <i class="fas fa-chart-line stats-icon"></i>
+      </div>
       <div id="studyStats">
-        <p>总学分: <span id="totalCredits">0</span></p>
-        <p>平均分: <span id="averageScore">0</span></p>
-        <p>平均绩点: <span id="gpa">0</span></p>
+        <div class="stats-value">
+          <span>总学分</span>
+          <span id="totalCredits" class="text-primary">0</span>
+        </div>
+        <div class="stats-value">
+          <span>平均分</span>
+          <span id="averageScore" class="text-info">0</span>
+        </div>
+        <div class="stats-value">
+          <span>平均绩点</span>
+          <span id="gpa" class="text-success">0</span>
+        </div>
       </div>
     </div>
 
+    <!-- 图表展示 -->
+    <div class="charts-container">
+      <div class="chart-wrapper" style="flex-basis: 100%;">
+        <div class="chart-card">
+          <h5 class="mb-3">成绩分布</h5>
+          <div class="chart-container">
+            <canvas id="gradeDistributionChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- 移除学期平均分趋势图表，因为没有真实数据支持 -->
+    </div>
+
     <!-- 课程成绩列表 -->
-    <div id="courseGradesList">
+    <h4 class="mb-3 mt-4">课程成绩详情</h4>
+    <div id="courseGradesList" class="fade-in">
       <!-- 课程成绩卡片将在这里动态生成 -->
+      <div class="loading-spinner" id="loadingSpinner"></div>
     </div>
   </div>
 
@@ -109,8 +309,14 @@
         const response = await window.getStudentGrades(studentId);
 
         if (response.success) {
+          $('#loadingSpinner').hide();
           displayGrades(response.data);
           calculateStats(response.data);
+
+          // 成绩分布图表
+          renderGradeDistributionChart(response.data);
+
+          // 移除学期平均分趋势图表的渲染调用
         } else {
           alert('获取成绩失败: ' + response.message);
         }
@@ -120,48 +326,123 @@
       }
     }
 
+    // 渲染成绩分布图表
+    function renderGradeDistributionChart(courses) {
+      let gradeRanges = {
+        "90-100": 0,
+        "80-89": 0,
+        "70-79": 0,
+        "60-69": 0,
+        "0-59": 0
+      };
+
+      courses.forEach(course => {
+        const totalGrade = calculateTotalGrade(course);
+        if (totalGrade >= 90) gradeRanges["90-100"]++;
+        else if (totalGrade >= 80) gradeRanges["80-89"]++;
+        else if (totalGrade >= 70) gradeRanges["70-79"]++;
+        else if (totalGrade >= 60) gradeRanges["60-69"]++;
+        else gradeRanges["0-59"]++;
+      });
+
+      const ctx = document.getElementById('gradeDistributionChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(gradeRanges),
+          datasets: [{
+            data: Object.values(gradeRanges),
+            backgroundColor: [
+              '#1cc88a', '#36b9cc', '#4e73df', '#f6c23e', '#e74a3b'
+            ],
+            hoverOffset: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 12,
+                padding: 10
+              }
+            }
+          },
+          layout: {
+            padding: 5
+          }
+        }
+      });
+    }
+
     // 显示成绩
     function displayGrades(courses) {
       const container = $('#courseGradesList');
       container.empty();
 
       if (!courses || courses.length === 0) {
-        container.html('<p>暂无成绩数据</p>');
+        container.html('<p class="text-center text-muted mt-4">暂无成绩数据</p>');
         return;
       }
 
-      courses.forEach(course => {
+      courses.forEach((course, index) => {
         const usualGrade = course.usual_grade || 0;
         const midtermGrade = course.midterm_grade || 0;
         const finalGrade = course.final_grade || 0;
 
         const totalGrade = calculateTotalGrade(course);
         const gradeClass = getGradeClass(totalGrade);
+        const letterGrade = getLetterGrade(totalGrade);
+        const gpaValue = calculateGPA(totalGrade);
 
         const card = $(`
-                    <div class="course-card">
-                        <h5>${course.name}</h5>
-                        <p>学分: ${course.credit}</p>
-                        <div class="row">
-                            <div class="col">
-                                <p>平时成绩 (${course.usual_score}%):</p>
-                                <p class="grade-value">${usualGrade}</p>
-                            </div>
-                            <div class="col">
-                                <p>期中成绩 (${course.midterm_score}%):</p>
-                                <p class="grade-value">${midtermGrade}</p>
-                            </div>
-                            <div class="col">
-                                <p>期末成绩 (${course.final_score}%):</p>
-                                <p class="grade-value">${finalGrade}</p>
-                            </div>
-                            <div class="col">
-                                <p>总评:</p>
-                                <p class="grade-value ${gradeClass}">${totalGrade.toFixed(2)}</p>
-                            </div>
-                        </div>
-                    </div>
-                `);
+          <div class="course-card card-transition" style="animation-delay: ${index * 0.1}s">
+            <div class="course-header">
+              <h5>${course.name}</h5>
+              <span class="course-credit">学分: ${course.credit}</span>
+            </div>
+            <div class="grade-row">
+              <div class="grade-col">
+                <div class="grade-box">
+                  <div class="grade-label">平时成绩 (${course.usual_score}%)</div>
+                  <div class="grade-value">${usualGrade}</div>
+                </div>
+              </div>
+              <div class="grade-col">
+                <div class="grade-box">
+                  <div class="grade-label">期中成绩 (${course.midterm_score}%)</div>
+                  <div class="grade-value">${midtermGrade}</div>
+                </div>
+              </div>
+              <div class="grade-col">
+                <div class="grade-box">
+                  <div class="grade-label">期末成绩 (${course.final_score}%)</div>
+                  <div class="grade-value">${finalGrade}</div>
+                </div>
+              </div>
+              <div class="grade-col">
+                <div class="grade-box">
+                  <div class="grade-label">总评</div>
+                  <div class="grade-value ${gradeClass}">${totalGrade.toFixed(1)}</div>
+                </div>
+              </div>
+              <div class="grade-col">
+                <div class="grade-box">
+                  <div class="grade-label">等级</div>
+                  <div class="grade-value ${gradeClass}">${letterGrade}</div>
+                </div>
+              </div>
+              <div class="grade-col">
+                <div class="grade-box">
+                  <div class="grade-label">绩点</div>
+                  <div class="grade-value ${gradeClass}">${gpaValue.toFixed(1)}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `);
 
         container.append(card);
       });
@@ -173,6 +454,18 @@
       if (score >= 80) return 'grade-b';
       if (score >= 60) return 'grade-c';
       return 'grade-d';
+    }
+
+    // 获取字母等级
+    function getLetterGrade(score) {
+      if (score >= 90) return 'A';
+      if (score >= 85) return 'B+';
+      if (score >= 80) return 'B';
+      if (score >= 75) return 'C+';
+      if (score >= 70) return 'C';
+      if (score >= 65) return 'D+';
+      if (score >= 60) return 'D';
+      return 'F';
     }
 
     // 计算单门课程总评
@@ -197,7 +490,7 @@
         weightedGPA += calculateGPA(totalGrade) * credit;
       });
 
-      const averageScore = totalCredits ? (weightedScore / totalCredits).toFixed(2) : 0;
+      const averageScore = totalCredits ? (weightedScore / totalCredits).toFixed(1) : 0;
       const gpa = totalCredits ? (weightedGPA / totalCredits).toFixed(2) : 0;
 
       $('#totalCredits').text(totalCredits);
