@@ -640,33 +640,6 @@
                 });
         }
 
-        // 过滤查看课程的教师选择框
-        function filterViewTeachers(searchText) {
-            const select = $('#teacherSelect');
-            select.empty();
-            select.append('<option value="">选择教师</option>');
-            
-            if (!window.teachersList || !searchText.trim()) {
-                return;
-            }
-
-            const searchLower = searchText.toLowerCase();
-            const filteredTeachers = window.teachersList.filter(teacher => 
-                teacher.name.toLowerCase().includes(searchLower) ||
-                teacher.teacher_id.toLowerCase().includes(searchLower)
-            );
-
-            if (filteredTeachers.length > 0) {
-                filteredTeachers.forEach(teacher => {
-                    select.append(`<option value="${teacher.teacher_id}">
-                        ${teacher.name} - ${teacher.teacher_id}
-                    </option>`);
-                });
-            } else {
-                select.append('<option value="" disabled>无匹配教师</option>');
-            }
-        }
-
         // 加载安排教师列表
         function loadTeachersForSchedule() {
             window.getTeachers()
@@ -713,25 +686,6 @@
                 select.append('<option value="" disabled>无匹配教师</option>');
             }
         }
-
-        // 加载安排课程列表
-        function loadCoursesForSchedule() {
-            window.getCourses()
-                .then(response => {
-                    if (response && response.success) {
-                        const select = $('#scheduleCourseSelect');
-                        select.empty();
-                        select.append('<option value="">选择课程</option>');
-                        response.data.forEach(course => {
-                            select.append(`<option value="${course.id}">${course.name}</option>`);
-                        });
-                    }
-                })
-                .catch(error => {
-                    console.error('加载课程列表失败:', error);
-                });
-        }
-
         // 过滤安排课程选择框
         function filterScheduleCourses(searchText) {
             const select = $('#scheduleCourseSelect');
