@@ -9,8 +9,6 @@ from functools import wraps
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
-from testmoudle.test import a
-
 from mypy.config import DATABASE_PATH
 from mypy.db_operations import (
     get_db_connection, execute_query, execute_insert,
@@ -68,7 +66,7 @@ def index():
 def init_db():
     conn = get_db()
     cursor = conn.cursor()
-    
+
     # 创建用户表
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS users (
@@ -78,7 +76,7 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
     ''')
-    
+
     conn.commit()
     conn.close()
 
@@ -91,17 +89,17 @@ def login():
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
-    
+
     conn = get_db()
     cursor = conn.cursor()
-    
+
     cursor.execute('SELECT * FROM users WHERE username = ?', (username,))
     user = cursor.fetchone()
-    
+
     if user and user['password'] == password:  # 在实际应用中应该使用密码哈希
         session['username'] = username
         return jsonify({'success': True, 'message': '登录成功'})
-    
+
     return jsonify({'success': False, 'message': '用户名或密码错误'})
 
 # 添加注册路由
@@ -111,16 +109,16 @@ def register():
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
-        
+
         if not username or not password:
             return jsonify({
                 'success': False,
                 'message': '用户名和密码不能为空'
             }), 400
-        
+
         conn = get_db()
         cursor = conn.cursor()
-        
+
         # 检查用户名是否已存在
         cursor.execute('SELECT 1 FROM users WHERE username = ?', (username,))
         if cursor.fetchone():
@@ -128,17 +126,17 @@ def register():
                 'success': False,
                 'message': '用户名已存在'
             }), 400
-        
+
         # 添加新用户
         cursor.execute('INSERT INTO users (username, password) VALUES (?, ?)',
-                      (username, password))  # 实际应用中应该哈希密码
-        
+                    (username, password))  # 实际应用中应该哈希密码
+
         conn.commit()
         return jsonify({
             'success': True,
             'message': '注册成功'
         })
-        
+
     except Exception as e:
         print('注册失败:', e)
         return jsonify({
