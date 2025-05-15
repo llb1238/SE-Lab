@@ -753,3 +753,32 @@ function filterDataWithLimit(dataList, searchText, limit = 25) {
         return false;
     });
 }
+
+// 获取当前管理员的个人资料
+window.getAdminProfile = async function (adminId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admins/${adminId}/profile`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取管理员个人资料失败', error);
+    }
+}
+
+// 更新管理员个人资料
+window.updateAdminProfile = async function (adminId, profileData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admins/${adminId}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(profileData)
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('更新管理员个人资料失败', error);
+    }
+}
