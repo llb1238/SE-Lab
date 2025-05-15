@@ -1,5 +1,5 @@
 import sqlite3
-from py.config import DATABASE_PATH
+from mypy.config import DATABASE_PATH
 
 def get_db_connection():
     """创建数据库连接"""

@@ -9,8 +9,10 @@ from functools import wraps
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
-from py.config import DATABASE_PATH
-from py.db_operations import (
+from testmoudle.test import a
+
+from mypy.config import DATABASE_PATH
+from mypy.db_operations import (
     get_db_connection, execute_query, execute_insert,
     execute_update, execute_delete, add_record,
     update_record, delete_record, get_records
