@@ -4,6 +4,7 @@ channels:
   - https://repo.anaconda.com/pkgs/main
   - https://repo.anaconda.com/pkgs/r
 dependencies:
+  - pytest        # 新增
   - _libgcc_mutex=0.1
   - _openmp_mutex=5.1
   - blinker=1.9.0
