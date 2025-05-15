@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>我的成绩</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/static/js/api.js"></script>
+  <style>
+    .content-area {
+      padding: 20px;
+    }
+
+    .stats-card {
+      background-color: #f8f9fa;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+    }
+
+    .course-card {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .grade-value {
+      font-weight: bold;
+    }
+
+    .grade-a {
+      color: #28a745;
+    }
+
+    .grade-b {
+      color: #17a2b8;
+    }
+
+    .grade-c {
+      color: #ffc107;
+    }
+
+    .grade-d {
+      color: #dc3545;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="content-area">
+    <h3>我的成绩</h3>
+
+    <!-- 学习统计 -->
+    <div class="stats-card">
+      <h4>学习统计</h4>
+      <div id="studyStats">
+        <p>总学分: <span id="totalCredits">0</span></p>
+        <p>平均分: <span id="averageScore">0</span></p>
+        <p>平均绩点: <span id="gpa">0</span></p>
+      </div>
+    </div>
+
+    <!-- 课程成绩列表 -->
+    <div id="courseGradesList">
+      <!-- 课程成绩卡片将在这里动态生成 -->
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      // 获取当前登录学生的ID
+      getStudentId().then(studentId => {
+        if (studentId) {
+          loadStudentGrades(studentId);
+        } else {
+          alert('无法获取学生信息，请重新登录');
+        }
+      });
+    });
+
+    // 获取当前登录学生的ID
+    async function getStudentId() {
+      try {
+        const userResponse = await fetch('/api/current-user');
+        const userData = await userResponse.json();
+
+        if (userData.success) {
+          const username = userData.data.username;
+
+          const studentsResponse = await window.getStudents();
+          if (studentsResponse.success) {
+            const student = studentsResponse.data.find(s => s.name === username);
+            if (student) {
+              return student.student_id;
+            }
+          }
+        }
+        return null;
+      } catch (error) {
+        console.error('获取学生ID失败:', error);
+        return null;
+      }
+    }
+
+    // 加载学生成绩
+    async function loadStudentGrades(studentId) {
+      try {
+        const response = await window.getStudentGrades(studentId);
+
+        if (response.success) {
+          displayGrades(response.data);
+          calculateStats(response.data);
+        } else {
+          alert('获取成绩失败: ' + response.message);
+        }
+      } catch (error) {
+        console.error('获取成绩失败:', error);
+        alert('获取成绩失败，请重试');
+      }
+    }
+
+    // 显示成绩
+    function displayGrades(courses) {
+      const container = $('#courseGradesList');
+      container.empty();
+
+      if (!courses || courses.length === 0) {
+        container.html('<p>暂无成绩数据</p>');
+        return;
+      }
+
+      courses.forEach(course => {
+        const usualGrade = course.usual_grade || 0;
+        const midtermGrade = course.midterm_grade || 0;
+        const finalGrade = course.final_grade || 0;
+
+        const totalGrade = calculateTotalGrade(course);
+        const gradeClass = getGradeClass(totalGrade);
+
+        const card = $(`
+                    <div class="course-card">
+                        <h5>${course.name}</h5>
+                        <p>学分: ${course.credit}</p>
+                        <div class="row">
+                            <div class="col">
+                                <p>平时成绩 (${course.usual_score}%):</p>
+                                <p class="grade-value">${usualGrade}</p>
+                            </div>
+                            <div class="col">
+                                <p>期中成绩 (${course.midterm_score}%):</p>
+                                <p class="grade-value">${midtermGrade}</p>
+                            </div>
+                            <div class="col">
+                                <p>期末成绩 (${course.final_score}%):</p>
+                                <p class="grade-value">${finalGrade}</p>
+                            </div>
+                            <div class="col">
+                                <p>总评:</p>
+                                <p class="grade-value ${gradeClass}">${totalGrade.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    </div>
+                `);
+
+        container.append(card);
+      });
+    }
+
+    // 获取成绩等级对应的CSS类
+    function getGradeClass(score) {
+      if (score >= 90) return 'grade-a';
+      if (score >= 80) return 'grade-b';
+      if (score >= 60) return 'grade-c';
+      return 'grade-d';
+    }
+
+    // 计算单门课程总评
+    function calculateTotalGrade(course) {
+      const usual = (course.usual_grade || 0) * (course.usual_score / 100);
+      const midterm = (course.midterm_grade || 0) * (course.midterm_score / 100);
+      const final = (course.final_grade || 0) * (course.final_score / 100);
+      return usual + midterm + final;
+    }
+
+    // 计算学习统计
+    function calculateStats(courses) {
+      let totalCredits = 0;
+      let weightedScore = 0;
+      let weightedGPA = 0;
+
+      courses.forEach(course => {
+        const totalGrade = calculateTotalGrade(course);
+        const credit = parseFloat(course.credit);
+        totalCredits += credit;
+        weightedScore += totalGrade * credit;
+        weightedGPA += calculateGPA(totalGrade) * credit;
+      });
+
+      const averageScore = totalCredits ? (weightedScore / totalCredits).toFixed(2) : 0;
+      const gpa = totalCredits ? (weightedGPA / totalCredits).toFixed(2) : 0;
+
+      $('#totalCredits').text(totalCredits);
+      $('#averageScore').text(averageScore);
+      $('#gpa').text(gpa);
+    }
+
+    // 计算GPA
+    function calculateGPA(score) {
+      if (score >= 90) return 4.0;
+      if (score >= 85) return 3.7;
+      if (score >= 80) return 3.3;
+      if (score >= 75) return 3.0;
+      if (score >= 70) return 2.7;
+      if (score >= 65) return 2.3;
+      if (score >= 60) return 2.0;
+      return 0;
+    }
+  </script>
+</body>
+
+</html>

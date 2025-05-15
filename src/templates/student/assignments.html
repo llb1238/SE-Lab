@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>我的作业</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/static/js/api.js"></script>
+  <style>
+    .content-area {
+      padding: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 15px;
+    }
+
+    .assignment-card {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+
+    .course-title {
+      margin-top: 30px;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .assignment-date {
+      font-size: 0.8em;
+      color: #6c757d;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="content-area">
+    <h3>我的作业</h3>
+
+    <!-- 选择课程 -->
+    <div class="form-group">
+      <label>搜索课程:</label>
+      <input type="text" class="form-control" id="courseSearch" placeholder="输入课程名称搜索">
+      <select class="form-control mt-2" id="courseSelect">
+        <option value="">选择课程</option>
+      </select>
+    </div>
+
+    <!-- 作业列表 -->
+    <div id="assignmentsList">
+      <!-- 作业卡片将在这里动态生成 -->
+    </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      // 获取当前登录学生的ID
+      getStudentId().then(studentId => {
+        if (studentId) {
+          // 加载学生课程
+          loadStudentCourses(studentId);
+
+          // 绑定课程选择事件
+          $('#courseSelect').change(function () {
+            const courseId = $(this).val();
+            if (courseId) {
+              loadAssignments(courseId);
+            } else {
+              $('#assignmentsList').empty();
+            }
+          });
+
+          // 绑定课程搜索事件
+          $('#courseSearch').on('input', function () {
+            const searchText = $(this).val().toLowerCase();
+            filterCourses(searchText);
+          });
+        } else {
+          alert('无法获取学生信息，请重新登录');
+        }
+      });
+    });
+
+    // 获取当前登录学生的ID
+    async function getStudentId() {
+      try {
+        const userResponse = await fetch('/api/current-user');
+        const userData = await userResponse.json();
+
+        if (userData.success) {
+          const username = userData.data.username;
+
+          const studentsResponse = await window.getStudents();
+          if (studentsResponse.success) {
+            const student = studentsResponse.data.find(s => s.name === username);
+            if (student) {
+              return student.student_id;
+            }
+          }
+        }
+        return null;
+      } catch (error) {
+        console.error('获取学生ID失败:', error);
+        return null;
+      }
+    }
+
+    // 加载学生课程
+    async function loadStudentCourses(studentId) {
+      try {
+        const response = await window.getStudentCourses(studentId);
+
+        if (response.success) {
+          window.studentCourses = response.data;
+          const select = $('#courseSelect');
+          select.empty();
+          select.append('<option value="">选择课程</option>');
+
+          response.data.forEach(course => {
+            select.append(`<option value="${course.id}">${course.name}</option>`);
+          });
+        }
+      } catch (error) {
+        console.error('加载课程失败:', error);
+        alert('加载课程失败，请重试');
+      }
+    }
+
+    // 过滤课程
+    function filterCourses(searchText) {
+      const select = $('#courseSelect');
+      select.empty();
+      select.append('<option value="">选择课程</option>');
+
+      if (!window.studentCourses) return;
+
+      const filteredCourses = window.studentCourses.filter(course =>
+        course.name.toLowerCase().includes(searchText)
+      );
+
+      filteredCourses.forEach(course => {
+        select.append(`<option value="${course.id}">${course.name}</option>`);
+      });
+    }
+
+    // 加载作业
+    async function loadAssignments(courseId) {
+      try {
+        const response = await window.getAssignments(courseId);
+
+        if (response.success) {
+          displayAssignments(response.data);
+        } else {
+          $('#assignmentsList').html('<p>加载作业失败: ' + response.message + '</p>');
+        }
+      } catch (error) {
+        console.error('加载作业失败:', error);
+        $('#assignmentsList').html('<p>加载作业失败，请重试</p>');
+      }
+    }
+
+    // 显示作业
+    function displayAssignments(assignments) {
+      const container = $('#assignmentsList');
+      container.empty();
+
+      if (!assignments || assignments.length === 0) {
+        container.html('<p>该课程暂无作业</p>');
+        return;
+      }
+
+      assignments.forEach(assignment => {
+        const date = new Date(assignment.create_time);
+        const dateStr = date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+
+        const card = $(`
+                    <div class="assignment-card">
+                        <h5>${assignment.title}</h5>
+                        <p class="assignment-date">发布时间: ${dateStr}</p>
+                        <div class="mt-3">
+                            <p>${assignment.content}</p>
+                        </div>
+                    </div>
+                `);
+
+        container.append(card);
+      });
+    }
+  </script>
+</body>
+
+</html>
