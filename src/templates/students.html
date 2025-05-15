@@ -623,20 +623,6 @@
             }
         }
 
-        // 加载报名课程列表
-        function loadCoursesForEnroll() {
-            window.getCourses()
-                .then(response => {
-                    if (response && response.success) {
-                        window.enrollCoursesList = response.data;  // 保存课程列表
-                        filterEnrollCourses('');  // 初始显示前25条记录
-                    }
-                })
-                .catch(error => {
-                    console.error('加载课程列表失败:', error);
-                });
-        }
-
         // 过滤报名课程选择框
         function filterEnrollCourses(searchText) {
             const select = $('#enrollCourseSelect');
@@ -849,9 +835,10 @@
             }
 
             const searchLower = searchText.toLowerCase();
-            const filteredCourses = window.enrollCoursesList.filter(course => 
-                course.name.toLowerCase().includes(searchLower)
-            );
+            const filteredCourses = searchText.trim()
+                ? window.enrollCoursesList.filter(course =>
+                    course.name.toLowerCase().includes(searchLower))
+                : window.enrollCoursesList.slice(0, 25); // 默认加载前25条
 
             if (filteredCourses.length > 0) {
                 filteredCourses.forEach(course => {
