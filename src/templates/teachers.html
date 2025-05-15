@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>教师管理</title>
+    <style>
+        .action-buttons {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .content-area {
+            padding: 20px;
+            margin-left: 200px;
+        }
+        .search-area {
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        /* 确保子功能区域不会重叠 */
+        #registerTeacherForm, #viewCoursesArea, #scheduleCourseArea, 
+        #modifyTeacherArea, #deleteTeacherArea {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content-area">
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="showRegisterTeacher()">注册教师</button>
+            <button class="btn btn-success" onclick="showScheduleCourse()">安排课程</button>
+            <button class="btn btn-warning" onclick="showModifyTeacher()">修改教师信息</button>
+            <button class="btn btn-danger" onclick="showDeleteTeacher()">修改删除教师</button>
+            <button class="btn btn-info" onclick="showViewCourses()">查看教师课程</button>
+        </div>
+
+        <!-- 注册教师表单 -->
+        <div id="registerTeacherForm" style="display: none;">
+            <h3>注册教师</h3>
+            <form id="teacherForm">
+                <div class="form-group">
+                    <label>教师姓名:</label>
+                    <input type="text" class="form-control" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>教师职工号:</label>
+                    <input type="text" class="form-control" name="teacher_id" required>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">注册</button>
+            </form>
+        </div>
+
+        <!-- 查看教师课程区域 -->
+        <div id="viewCoursesArea" style="display: none;">
+            <h4>查看教师课程</h4>
+            <div class="form-group">
+                <label>搜索教师:</label>
+                <input type="text" class="form-control" id="viewTeacherSearch" placeholder="输入工号或姓名搜索">
+                <select class="form-control mt-2" id="teacherSelect">
+                    <option value="">选择教师</option>
+                </select>
+            </div>
+            <div class="mt-3">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>课程名称</th>
+                            <th>学时</th>
+                            <th>学分</th>
+                            <th>上课时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="teacherCoursesTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 安排课程区域 -->
+        <div id="scheduleCourseArea" style="display: none;">
+            <h3>安排课程</h3>
+            <div class="form-group">
+                <label>选择教师:</label>
+                <select class="form-control" id="scheduleTeacherSelect">
+                </select>
+            </div>
+            <div class="form-group">
+                <label>选择课程:</label>
+                <select class="form-control" id="scheduleCourseSelect">
+                </select>
+            </div>
+            <button class="btn btn-primary mt-3" onclick="scheduleCourse()">安排课程</button>
+        </div>
+
+        <!-- 修改教师信息区域 -->
+        <div id="modifyTeacherArea" style="display: none;">
+            <h3>修改教师信息</h3>
+            <div class="form-group">
+                <label>选择教师:</label>
+                <select class="form-control" id="modifyTeacherSelect">
+                </select>
+            </div>
+            <form id="modifyTeacherForm">
+                <div class="form-group">
+                    <label>新教师姓名:</label>
+                    <input type="text" class="form-control" name="new_name" required>
+                </div>
+                <div class="form-group">
+                    <label>新教师职工号:</label>
+                    <input type="text" class="form-control" name="new_teacher_id" required>
+                </div>
+                <button type="submit" class="btn btn-warning mt-3">修改</button>
+            </form>
+        </div>
+
+        <!-- 删除教师区域 -->
+        <div id="deleteTeacherArea" style="display: none;">
+            <h3>删除教师</h3>
+            <div class="form-group">
+                <label>选择要删除的教师:</label>
+                <select class="form-control" id="deleteTeacherSelect">
+                    <option value="">选择教师</option>
+                </select>
+            </div>
+            <button type="button" class="btn btn-danger mt-3" onclick="deleteTeacher()">删除</button>
+        </div>
+    </div>
+
+    <script>
+        // 刷新所有数据的函数
+        function refreshAllData() {
+            loadTeachers();
+            loadCoursesForSchedule();
+            updateTeacherCourseView();
+            
+            // 如果当前在查看课程页面，也刷新教师课程列表
+            const selectedTeacherId = $('#teacherSelect').val();
+            if (selectedTeacherId) {
+                loadTeacherCourses(selectedTeacherId);
+            }
+            
+            // 更新所有教师选择器
+            updateTeacherSelectors();
+        }
+
+        // 加载教师列表
+        function loadTeachers() {
+            window.getTeachers()
+                .then(response => {
+                    if (response && response.success) {
+                        window.teachersList = response.data;  // 保存教师列表
+                        filterTeachers('');  // 初始显示所有教师
+                    }
+                })
+                .catch(error => {
+                    console.error('加载教师列表失败:', error);
+                    alert('加载教师列表失败: ' + error.message);
+                });
+        }
+
+        // 加载课程列表（用于安排课程）
+        function loadCoursesForSchedule() {
+            window.getCourses()
+                .then(response => {
+                    if (response && response.success) {
+                        window.scheduleCoursesList = response.data;  // 保存课程列表
+                        console.log('安排课程列表已加载:', window.scheduleCoursesList);
+                        const select = $('#scheduleCourseSelect');
+                        select.empty();
+                        select.append('<option value="">选择课程</option>');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载课程列表失败:', error);
+                });
+        }
+
+        // 过滤课程选择框
+        function filterScheduleCourses(searchText) {
+            const select = $('#scheduleCourseSelect');
+            select.empty();
+            select.append('<option value="">选择课程</option>');
+            
+            if (!window.scheduleCoursesList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredCourses = window.scheduleCoursesList.filter(course => 
+                course.name.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredCourses.length > 0) {
+                filteredCourses.forEach(course => {
+                    select.append(`<option value="${course.id}">${course.name}</option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配课程</option>');
+            }
+        }
+
+        // 加载教师课程
+        function loadTeacherCourses(teacherId) {
+            console.log('加载教师课程:', teacherId);  // 添加日志
+            window.getTeacherCourses(teacherId)
+                .then(response => {
+                    console.log('教师课程响应:', response);  // 添加日志
+                    if (response && response.success) {
+                        let html = '';
+                        if (response.data && response.data.length > 0) {
+                            response.data.forEach(course => {
+                                html += `
+                                    <tr>
+                                        <td>${course.name}</td>
+                                        <td>${course.learn_time}</td>
+                                        <td>${course.credit}</td>
+                                        <td>${course.times || ''}</td>
+                                    </tr>
+                                `;
+                            });
+                        } else {
+                            html = '<tr><td colspan="4">暂无课程数据</td></tr>';
+                        }
+                        $('#teacherCoursesTableBody').html(html);
+                    } else {
+                        $('#teacherCoursesTableBody').html('<tr><td colspan="4">加载失败</td></tr>');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载教师课程失败:', error);
+                    $('#teacherCoursesTableBody').html('<tr><td colspan="4">加载失败</td></tr>');
+                });
+        }
+
+        // 注册教师
+        $('#teacherForm').submit(function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: $('input[name="name"]').val(),
+                teacher_id: $('input[name="teacher_id"]').val()
+            };
+
+            window.addTeacher(formData)
+                .then(response => {
+                    if (response.success) {
+                        alert('教师注册成功');
+                        $('#teacherForm')[0].reset();
+                        refreshAllData();  // 刷新所有数据
+                    }
+                })
+                .catch(error => {
+                    alert('注册失败: ' + error.message);
+                });
+        });
+
+        // 安排课程
+        async function scheduleCourse() {
+            const teacherId = $('#scheduleTeacherSelect').val();
+            const courseId = $('#scheduleCourseSelect').val();
+
+            if (!teacherId || !courseId) {
+                alert('请选择教师和课程');
+                return;
+            }
+
+            try {
+                // 获取教师当前的课程安排
+                const teacherCoursesResponse = await window.getTeacherCourses(teacherId);
+                const existingCourses = teacherCoursesResponse.data;
+                
+                // 获取要安排的课程信息
+                const courseResponse = await window.getCourses();
+                const course = courseResponse.data.find(c => c.id === parseInt(courseId));
+                
+                // 检查教师在该时间段是否已有其他课程
+                if (hasTeacherTimeConflict(course, existingCourses)) {
+                    alert('时间冲突：该教师在所选课程的时间段已有其他课程安排！');
+                    return;
+                }
+
+                // 检查教师课程数量
+                if (existingCourses.length >= 4) {
+                    if (!confirm('警告：该教师已有4门课程，继续安排可能会增加教师负担。\n是否确定要安排？')) {
+                        return;
+                    }
+                }
+
+                // 如果检查都通过，进行课程安排
+                const response = await window.addTeacherCourse(teacherId, courseId);
+                if (response && response.success) {
+                    alert('课程安排成功');
+                    $('#scheduleTeacherSelect').val('');
+                    $('#scheduleCourseSelect').val('');
+                    refreshAllData();
+                }
+            } catch (error) {
+                alert('安排失败: ' + (error.message || '未知错误'));
+            }
+        }
+
+        // 检查教师时间冲突
+        function hasTeacherTimeConflict(newCourse, existingCourses) {
+            const newTimes = newCourse.times.split('|');
+            
+            for (const course of existingCourses) {
+                if (!course.times) continue;
+                const existingTimes = course.times.split('|');
+                
+                // 检查每个时间段是否有冲突
+                for (const newTime of newTimes) {
+                    if (existingTimes.includes(newTime)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 页面加载时初始化
+        $(document).ready(function() {
+            // 默认显示注册教师页面
+            $('#registerTeacherForm').show();
+            $('#viewCoursesArea, #scheduleCourseArea, #modifyTeacherArea, #deleteTeacherArea').hide();
+            
+            refreshAllData();
+            
+            // 监听教师搜索输入
+            $('#viewTeacherSearch').on('input', function() {
+                const searchText = $(this).val().toLowerCase();
+                filterTeachers(searchText);
+            });
+            
+            // 监听教师选择变化
+            $('#teacherSelect').change(function() {
+                const teacherId = $(this).val();
+                if (teacherId) {
+                    loadTeacherCourses(teacherId);
+                } else {
+                    $('#teacherCoursesTableBody').empty();
+                }
+            });
+
+            // 删除教师按钮点击事件
+            $('#deleteTeacherBtn').off('click').on('click', function() {
+                deleteTeacher();
+            });
+
+            // 添加课程搜索功能
+            $('#scheduleCourseSearch').on('input', function() {
+                const searchText = $(this).val().trim();
+                filterScheduleCourses(searchText);
+            });
+        });
+
+        // 切换页面时刷新数据
+        function showRegisterTeacher() {
+            $('#registerTeacherForm').show();
+            $('#viewCoursesArea, #scheduleCourseArea, #modifyTeacherArea, #deleteTeacherArea').hide();
+            refreshAllData();
+        }
+
+        function showViewCourses() {
+            $('#viewCoursesArea').show();
+            $('#registerTeacherForm, #scheduleCourseArea, #modifyTeacherArea, #deleteTeacherArea').hide();
+            updateTeacherCourseView();
+        }
+
+        function showScheduleCourse() {
+            $('#scheduleCourseArea').show();
+            $('#registerTeacherForm, #viewCoursesArea, #modifyTeacherArea, #deleteTeacherArea').hide();
+            loadTeachersForSchedule();  // 加载教师列表
+            loadCoursesForSchedule();   // 加载课程列表
+        }
+
+        function showModifyTeacher() {
+            $('#modifyTeacherArea').show();
+            $('#registerTeacherForm, #viewCoursesArea, #scheduleCourseArea, #deleteTeacherArea').hide();
+            refreshAllData();
+        }
+
+        function showDeleteTeacher() {
+            $('#deleteTeacherArea').show();
+            $('#registerTeacherForm, #viewCoursesArea, #scheduleCourseArea, #modifyTeacherArea').hide();
+            refreshAllData();
+        }
+
+        // 修改加载教师列表的函数
+        function loadTeachersForDelete() {
+            getTeachers()
+                .then(response => {
+                    if (response.success) {
+                        const select = $('#deleteTeacherSelect');
+                        select.empty();
+                        select.append('<option value="">选择教师</option>');
+                        response.data.forEach(teacher => {
+                            select.append(`<option value="${teacher.teacher_id}">
+                                ${teacher.name} - ${teacher.teacher_id}
+                            </option>`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('加载教师列表失败:', error);
+                });
+        }
+
+        function loadTeachersForModify() {
+            getTeachers()
+                .then(response => {
+                    if (response.success) {
+                        const select = $('#modifyTeacherSelect');
+                        select.empty();
+                        select.append('<option value="">选择教师</option>');
+                        response.data.forEach(teacher => {
+                            select.append(`<option value="${teacher.teacher_id}">
+                                ${teacher.name} - ${teacher.teacher_id}
+                            </option>`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('加载教师列表失败:', error);
+                });
+        }
+
+        // 删除教师
+        function deleteTeacher() {
+            const teacherId = $('#deleteTeacherSelect').val();
+            if (!teacherId) {
+                alert('请选择要删除的教师');
+                return;
+            }
+
+            if (confirm('确定要删除这个教师吗？\n删除后将无法恢复，且相关的课程安排也会被删除。')) {
+                fetch(`/api/teachers/${teacherId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('教师删除成功');
+                        $('#deleteTeacherSelect').val('');  // 清空选择
+                        refreshAllData();  // 刷新所有数据
+                        updateTeacherCourseView();  // 更新教师课程视图
+                    } else {
+                        throw new Error(data.message || '删除失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('删除教师失败:', error);
+                    alert('删除失败: ' + (error.message || '未知错误'));
+                });
+            }
+        }
+
+        // 添加更新教师课程视图的函数
+        function updateTeacherCourseView() {
+            // 清空教师选择框和课程表格
+            $('#teacherSelect').empty().append('<option value="">选择教师</option>');
+            $('#teacherCoursesTableBody').empty();
+
+            // 重新加载教师列表
+            window.getTeachers()
+                .then(response => {
+                    if (response && response.success) {
+                        response.data.forEach(teacher => {
+                            $('#teacherSelect').append(`<option value="${teacher.teacher_id}">
+                                ${teacher.name} - ${teacher.teacher_id}
+                            </option>`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('加载教师列表失败:', error);
+                });
+        }
+
+        // 修改教师信息加载
+        $('#modifyTeacherSelect').change(function() {
+            const teacherId = $(this).val();
+            if (teacherId) {
+                getTeachers()
+                    .then(response => {
+                        if (response.success) {
+                            const teacher = response.data.find(t => t.teacher_id === teacherId);
+                            if (teacher) {
+                                $('input[name="new_name"]').val(teacher.name);
+                                $('input[name="new_teacher_id"]').val(teacher.teacher_id);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取教师信息失败:', error);
+                        alert('获取教师信息失败: ' + error.message);
+                    });
+            }
+        });
+
+        // 修改教师信息提交处理
+        $('#modifyTeacherForm').submit(function(e) {
+            e.preventDefault();
+            const teacherId = $('#modifyTeacherSelect').val();
+            if (!teacherId) {
+                alert('请选择要修改的教师');
+                return;
+            }
+
+            const formData = {
+                name: $('input[name="new_name"]').val(),
+                teacher_id: $('input[name="new_teacher_id"]').val()
+            };
+
+            // 验证据
+            if (!formData.name || !formData.teacher_id) {
+                alert('请填写所有必要字段');
+                return;
+            }
+
+            window.updateTeacher(teacherId, formData)
+                .then(response => {
+                    if (response && response.success) {
+                        alert('教师信息修改成功');
+                        $('#modifyTeacherForm')[0].reset();
+                        refreshAllData();  // 刷新所有数据
+                        
+                        // 重新加载所有相关数据
+                        loadTeachers();
+                        const selectedTeacherId = $('#teacherSelect').val();
+                        if (selectedTeacherId) {
+                            loadTeacherCourses(selectedTeacherId);
+                        }
+                    }
+                })
+                .catch(error => {
+                    alert('修改失败: ' + (error.message || '未知错误'));
+                });
+        });
+
+        // 更新所有教师选择器
+        function updateTeacherSelectors() {
+            window.getTeachers()
+                .then(response => {
+                    if (response && response.success) {
+                        const teacherSelects = [
+                            $('#teacherSelect'),
+                            $('#scheduleTeacherSelect'),
+                            $('#modifyTeacherSelect'),
+                            $('#deleteTeacherSelect')
+                        ];
+
+                        teacherSelects.forEach(select => {
+                            if (select.length) {
+                                const currentValue = select.val();  // 保存当前选中值
+                                select.empty();
+                                select.append('<option value="">选择教师</option>');
+                                response.data.forEach(teacher => {
+                                    select.append(`<option value="${teacher.teacher_id}">
+                                        ${teacher.name} - ${teacher.teacher_id}
+                                    </option>`);
+                                });
+                                if (currentValue) {
+                                    select.val(currentValue);  // 恢复选中值
+                                }
+                            }
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('更新教师选择器失败:', error);
+                });
+        }
+
+        // 修改过滤教师函数
+        function filterTeachers(searchText) {
+            const select = $('#teacherSelect');
+            select.empty();
+            select.append('<option value="">选择教师</option>');
+            
+            if (!window.teachersList) return;
+
+            const filteredTeachers = filterDataWithLimit(window.teachersList, searchText);
+            
+            if (filteredTeachers.length > 0) {
+                filteredTeachers.forEach(teacher => {
+                    select.append(`<option value="${teacher.teacher_id}">
+                        ${teacher.name} - ${teacher.teacher_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配教师</option>');
+            }
+        }
+
+        // 修改查看教师课程的过滤教师函数
+        function filterViewTeachers(searchText) {
+            const select = $('#teacherSelect');
+            select.empty();
+            select.append('<option value="">选择教师</option>');
+            
+            if (!window.teachersList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredTeachers = window.teachersList.filter(teacher => 
+                teacher.name.toLowerCase().includes(searchLower) ||
+                teacher.teacher_id.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredTeachers.length > 0) {
+                filteredTeachers.forEach(teacher => {
+                    select.append(`<option value="${teacher.teacher_id}">
+                        ${teacher.name} - ${teacher.teacher_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配教师</option>');
+            }
+        }
+
+        // 加载教师列表（用于查看课程）
+        function loadTeachersForView() {
+            window.getTeachers()
+                .then(response => {
+                    if (response && response.success) {
+                        window.teachersList = response.data;  // 保存教师列表
+                        const select = $('#teacherSelect');
+                        select.empty();
+                        select.append('<option value="">选择教师</option>');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载教师列表失败:', error);
+                });
+        }
+
+        // 过滤查看课程的教师选择框
+        function filterViewTeachers(searchText) {
+            const select = $('#teacherSelect');
+            select.empty();
+            select.append('<option value="">选择教师</option>');
+            
+            if (!window.teachersList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredTeachers = window.teachersList.filter(teacher => 
+                teacher.name.toLowerCase().includes(searchLower) ||
+                teacher.teacher_id.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredTeachers.length > 0) {
+                filteredTeachers.forEach(teacher => {
+                    select.append(`<option value="${teacher.teacher_id}">
+                        ${teacher.name} - ${teacher.teacher_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配教师</option>');
+            }
+        }
+
+        // 加载安排教师列表
+        function loadTeachersForSchedule() {
+            window.getTeachers()
+                .then(response => {
+                    if (response && response.success) {
+                        const select = $('#scheduleTeacherSelect');
+                        select.empty();
+                        select.append('<option value="">选择教师</option>');
+                        response.data.forEach(teacher => {
+                            select.append(`<option value="${teacher.teacher_id}">
+                                ${teacher.name} - ${teacher.teacher_id}
+                            </option>`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('加载教师列表失败:', error);
+                });
+        }
+
+        // 过滤安排教师选择框
+        function filterScheduleTeachers(searchText) {
+            const select = $('#scheduleTeacherSelect');
+            select.empty();
+            select.append('<option value="">选择教师</option>');
+            
+            if (!window.scheduleTeachersList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredTeachers = window.scheduleTeachersList.filter(teacher => 
+                teacher.name.toLowerCase().includes(searchLower) ||
+                teacher.teacher_id.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredTeachers.length > 0) {
+                filteredTeachers.forEach(teacher => {
+                    select.append(`<option value="${teacher.teacher_id}">
+                        ${teacher.name} - ${teacher.teacher_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配教师</option>');
+            }
+        }
+
+        // 加载安排课程列表
+        function loadCoursesForSchedule() {
+            window.getCourses()
+                .then(response => {
+                    if (response && response.success) {
+                        const select = $('#scheduleCourseSelect');
+                        select.empty();
+                        select.append('<option value="">选择课程</option>');
+                        response.data.forEach(course => {
+                            select.append(`<option value="${course.id}">${course.name}</option>`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('加载课程列表失败:', error);
+                });
+        }
+
+        // 过滤安排课程选择框
+        function filterScheduleCourses(searchText) {
+            const select = $('#scheduleCourseSelect');
+            select.empty();
+            select.append('<option value="">选择课程</option>');
+            
+            if (!window.scheduleCoursesList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredCourses = window.scheduleCoursesList.filter(course => 
+                course.name.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredCourses.length > 0) {
+                filteredCourses.forEach(course => {
+                    select.append(`<option value="${course.id}">${course.name}</option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配课程</option>');
+            }
+        }
+    </script>
+</body>
+</html> 

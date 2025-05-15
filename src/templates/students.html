@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>学生管理</title>
+    <style>
+        .action-buttons {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .content-area {
+            padding: 20px;
+            margin-left: 200px;
+        }
+        .search-area {
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        #addStudentForm, #viewCoursesArea, #enrollCourseArea, 
+        #modifyStudentArea, #deleteStudentArea {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="content-area">
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="showAddStudent()">注册学生</button>
+            <button class="btn btn-success" onclick="showEnrollCourse()">报名课程</button>
+            <button class="btn btn-warning" onclick="showModifyStudent()">修改学生信息</button>
+            <button class="btn btn-danger" onclick="showDeleteStudent()">删除学生</button>
+            <button class="btn btn-info" onclick="showViewCourses()">查看选课</button>
+        </div>
+
+        <!-- 注册学生表单 -->
+        <div id="addStudentForm" style="display: none;">
+            <h3>注册学生</h3>
+            <form id="studentForm">
+                <div class="form-group">
+                    <label>学生姓名:</label>
+                    <input type="text" class="form-control" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label>学号:</label>
+                    <input type="text" class="form-control" name="student_id" required>
+                </div>
+                <div class="form-group">
+                    <label>入学年份:</label>
+                    <select class="form-control" name="enrollment_year" required>
+                        <option value="">选择入学年份</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">注册</button>
+            </form>
+        </div>
+
+        <!-- 修改查看选课部分的HTML -->
+        <div id="viewCoursesArea" style="display: none;">
+            <h4>查看学生选课</h4>
+            <div class="form-group">
+                <label>搜索学生:</label>
+                <input type="text" class="form-control" id="viewStudentSearch" placeholder="输入学号或姓名搜索">
+                <select class="form-control mt-2" id="studentSelect">
+                    <option value="">选择学生</option>
+                </select>
+            </div>
+            <div class="mt-3">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>课程名称</th>
+                            <th>学时</th>
+                            <th>学分</th>
+                            <th>上课时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentCoursesTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 报名课程区域 -->
+        <div id="enrollCourseArea" style="display: none;">
+            <h3>报名课程</h3>
+            <div class="form-group">
+                <label>选择学生:</label>
+                <select class="form-control" id="enrollStudentSelect">
+                    <option value="">选择学生</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>选择课程:</label>
+                <select class="form-control" id="enrollCourseSelect">
+                    <option value="">选择课程</option>
+                </select>
+            </div>
+            <button class="btn btn-primary mt-3" onclick="enrollCourse()">报名</button>
+        </div>
+
+        <!-- 修改学生信息区域 -->
+        <div id="modifyStudentArea" style="display: none;">
+            <h3>修改学生信息</h3>
+            <div class="form-group">
+                <label>选择学生:</label>
+                <select class="form-control" id="modifyStudentSelect">
+                </select>
+            </div>
+            <form id="modifyStudentForm">
+                <div class="form-group">
+                    <label>新学生姓名:</label>
+                    <input type="text" class="form-control" name="new_name" required>
+                </div>
+                <div class="form-group">
+                    <label>新学号:</label>
+                    <input type="text" class="form-control" name="new_student_id" required>
+                </div>
+                <div class="form-group">
+                    <label>新入学年份:</label>
+                    <select class="form-control" name="new_enrollment_year" required>
+                        <option value="">选择入学年份</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-warning mt-3">修改</button>
+            </form>
+        </div>
+
+        <!-- 删除学生区域 -->
+        <div id="deleteStudentArea" style="display: none;">
+            <h3>删除学生</h3>
+            <div class="form-group">
+                <label>选择要删除的学生:</label>
+                <select class="form-control" id="deleteStudentSelect">
+                </select>
+            </div>
+            <button type="button" id="deleteStudentButton" class="btn btn-danger">删除</button>
+        </div>
+    </div>
+
+    <script>
+        // 刷新所有数据的函数
+        function refreshAllData() {
+            loadStudents();
+            loadCoursesForEnroll();
+            // 如果当前在查看课程页面，也刷新学生课程列表
+            const selectedStudentId = $('#studentSelect').val();
+            if (selectedStudentId) {
+                loadStudentCourses(selectedStudentId);
+            }
+        }
+
+        // 加载学生列表
+        function loadStudents() {
+            window.getStudents()
+                .then(response => {
+                    if (response && response.success) {
+                        window.studentsList = response.data;  // 保存学生列表
+                        filterStudents('');  // 初始显示所有学生
+                    }
+                })
+                .catch(error => {
+                    console.error('加载学生列表失败:', error);
+                    alert('加载学生列表失败: ' + error.message);
+                });
+        }
+
+        // 加载课程列表（用于报名课程）
+        function loadCoursesForEnroll() {
+            console.log('开始加载课程列表...');  // 调试日志
+            const select = $('#enrollCourseSelect');
+            select.empty();
+            select.append('<option value="">选择课程</option>');
+            
+            window.getCourses()
+                .then(response => {
+                    console.log('收到课程数据响应:', response);  // 调试日志
+                    
+                    if (response && response.success && Array.isArray(response.data)) {
+                        if (response.data.length > 0) {
+                            window.coursesList = response.data;  // 保存课程列表
+                            
+                            response.data.forEach(course => {
+                                const option = `<option value="${course.id}">${course.name}</option>`;
+                                select.append(option);
+                                console.log('添加课程选项:', course.name);  // 调试日志
+                            });
+                            
+                            console.log(`课程列表加载完成，共加载 ${response.data.length} 门课程`);
+                        } else {
+                            select.append('<option value="" disabled>暂无可选课程</option>');
+                            console.log('没有可用的课程数据');
+                        }
+                    } else {
+                        select.append('<option value="" disabled>加载失败</option>');
+                        console.error('加载课程失败:', response ? response.message : '未知错误');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载课程列表失败:', error);
+                    select.append('<option value="" disabled>加载失败</option>');
+                });
+        }
+
+        // 过滤课程选择框
+        function filterCoursesForEnroll(searchText) {
+            const select = $('#enrollCourseSelect');
+            select.empty();
+            select.append('<option value="">选择课程</option>');
+            
+            if (!window.coursesList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredCourses = window.coursesList.filter(course => 
+                course.name.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredCourses.length > 0) {
+                filteredCourses.forEach(course => {
+                    select.append(`<option value="${course.id}">${course.name}</option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配课程</option>');
+            }
+        }
+
+        // 注册学生
+        $('#studentForm').submit(function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                name: $('input[name="name"]').val(),
+                student_id: $('input[name="student_id"]').val(),
+                enrollment_year: parseInt($('select[name="enrollment_year"]').val())
+            };
+
+            window.addStudent(formData)
+                .then(response => {
+                    if (response.success) {
+                        alert('学生注册成功');
+                        $('#studentForm')[0].reset();
+                        refreshAllData();  // 刷新所有数据
+                    }
+                })
+                .catch(error => {
+                    alert('注册失败: ' + error.message);
+                });
+        });
+
+        // 报名课程
+        async function enrollCourse() {
+            const studentId = $('#enrollStudentSelect').val();
+            const courseId = $('#enrollCourseSelect').val();
+
+            if (!studentId || !courseId) {
+                alert('请选择学生和课程');
+                return;
+            }
+
+            try {
+                // 获取学生信息
+                const studentResponse = await window.getStudents();
+                const student = studentResponse.data.find(s => s.student_id === studentId);
+                
+                // 获取课程信息
+                const courseResponse = await window.getCourses();
+                const course = courseResponse.data.find(c => c.id === parseInt(courseId));
+                
+                // 检查年级是否匹配
+                const studentYear = student.enrollment_year;
+                const courseYear = getCourseYear(course.learn_time);  // 根据课程的learn_time判断年级
+                if (studentYear !== courseYear) {
+                    if (!confirm(`警告：该课程是为${course.learn_time}学生开设的，而该学生是${studentYear}级的。\n是否确定要报名？`)) {
+                        return;
+                    }
+                }
+
+                // 检查时间冲突
+                const studentCoursesResponse = await window.getStudentCourses(studentId);
+                const existingCourses = studentCoursesResponse.data;
+                
+                if (hasTimeConflict(course, existingCourses)) {
+                    alert('时间冲突：该生在所选课程的时间段已有其他课程！');
+                    return;
+                }
+
+                // 如果检查都通过，进行选课
+                const response = await window.addStudentCourse(studentId, courseId);
+                if (response && response.success) {
+                    alert('课程报名成功');
+                    $('#enrollStudentSelect').val('');
+                    $('#enrollCourseSelect').val('');
+                    refreshAllData();
+                }
+            } catch (error) {
+                alert('报名失败: ' + (error.message || '未知错误'));
+            }
+        }
+
+        // 检查时间冲突
+        function hasTimeConflict(newCourse, existingCourses) {
+            const newTimes = newCourse.times.split('|');
+            
+            for (const course of existingCourses) {
+                if (!course.times) continue;
+                const existingTimes = course.times.split('|');
+                
+                // 检查每个时间段是否有冲突
+                for (const newTime of newTimes) {
+                    if (existingTimes.includes(newTime)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 根据课程的learn_time判断年级
+        function getCourseYear(learnTime) {
+            const currentYear = new Date().getFullYear();
+            switch (learnTime) {
+                case '大一': return currentYear;
+                case '大二': return currentYear - 1;
+                case '大三': return currentYear - 2;
+                case '大四': return currentYear - 3;
+                default: return currentYear;
+            }
+        }
+
+        // 查看学生课程
+        function loadStudentCourses(studentId) {
+            window.getStudentCourses(studentId)
+                .then(response => {
+                    if (response && response.success) {
+                        let html = '';
+                        response.data.forEach(course => {
+                            html += `
+                                <tr>
+                                    <td>${course.name}</td>
+                                    <td>${course.learn_time}</td>
+                                    <td>${course.credit}</td>
+                                    <td>${course.times || ''}</td>
+                                </tr>
+                            `;
+                        });
+                        $('#studentCoursesTableBody').html(html);
+                    }
+                })
+                .catch(error => {
+                    console.error('加载学生课程失败:', error);
+                    $('#studentCoursesTableBody').html('<tr><td colspan="4">加载失败</td></tr>');
+                });
+        }
+
+        // 修改学生选择事件
+        $('#studentSelect').change(function() {
+            const studentId = $(this).val();
+            if (studentId) {
+                loadStudentCourses(studentId);
+            } else {
+                $('#studentCoursesTableBody').empty();
+            }
+        });
+
+        // 页面加载时初始化数据
+        $(document).ready(function() {
+            initEnrollmentYears();
+            refreshAllData(); // 确保学生和课程数据都加载
+            loadAllStudents();
+
+            $('#addStudentForm').show();
+            $('#viewCoursesArea, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea').hide();
+
+            // 学生搜索输入监听
+            $('#viewStudentSearch').on('input', function() {
+                const searchText = $(this).val().toLowerCase();
+                filterStudents(searchText);
+            });
+        });
+
+        // 修改页面加载时的始化
+        function showAddStudent() {
+            $('#addStudentForm').show();
+            $('#viewCoursesArea, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea').hide();
+            refreshAllData();
+        }
+
+        function showViewCourses() {
+            $('#viewCoursesArea').show();
+            $('#addStudentForm, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea').hide();
+            loadStudentsForView();  // 加载学生列表
+            
+            // 绑定搜索事件
+            $('#viewStudentSearch').off('input').on('input', function() {
+                const searchText = $(this).val().trim();
+                filterViewStudents(searchText);
+            });
+        }
+
+        function showEnrollCourse() {
+            console.log('显示报名课程页面');  // 调试日志
+            $('#enrollCourseArea').show();
+            $('#addStudentForm, #viewCoursesArea, #modifyStudentArea, #deleteStudentArea').hide();
+            loadStudentsForEnroll();  // 加载学生列表
+            loadCoursesForEnroll();   // 重新加载课程列表
+        }
+
+        function showModifyStudent() {
+            $('#modifyStudentArea').show();
+            $('#addStudentForm, #viewCoursesArea, #enrollCourseArea, #deleteStudentArea').hide();
+            initEnrollmentYears();  // 初始化入学年份选择器
+            loadAllStudents();     // 加载学生数据
+        }
+
+        function showDeleteStudent() {
+            $('#deleteStudentArea').show();
+            $('#addStudentForm, #viewCoursesArea, #enrollCourseArea, #modifyStudentArea').hide();
+            loadAllStudents();  // 切换到删除页面时重新加载数据
+        }
+
+        // 修改加载学生列表的函数
+        function loadStudentsForDelete() {
+            getStudents()
+                .then(response => {
+                    if (response.success) {
+                        const select = $('#deleteStudentSelect');
+                        select.empty();
+                        select.append('<option value="">选择学生</option>');
+                        response.data.forEach(student => {
+                            select.append(`<option value="${student.student_id}">
+                                ${student.name} - ${student.student_id}
+                            </option>`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('加载学生列表失败:', error);
+                });
+        }
+
+        function loadStudentsForModify() {
+            window.getStudents()
+                .then(response => {
+                    if (response && response.success) {
+                        window.studentsList = response.data;  // 保存学生列表
+                        const select = $('#modifyStudentSelect');
+                        select.empty();
+                        select.append('<option value="">选择学生</option>');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载学生列表失败:', error);
+                });
+        }
+
+        // 初始化入学年份选择器
+        function initEnrollmentYears() {
+            const yearSelects = $('select[name="enrollment_year"], select[name="new_enrollment_year"]');
+            const currentYear = new Date().getFullYear();
+            yearSelects.empty();
+            yearSelects.append('<option value="">选择入学年份</option>');
+            
+            // 添加近5年的选项
+            for (let year = currentYear; year >= currentYear - 4; year--) {
+                yearSelects.append(`<option value="${year}">${year}</option>`);
+            }
+        }
+
+        // 修改学生信息加载
+        $('#modifyStudentSelect').change(function() {
+            const studentId = $(this).val();
+            if (studentId) {
+                getStudents()
+                    .then(response => {
+                        if (response.success) {
+                            const student = response.data.find(s => s.student_id === studentId);
+                            if (student) {
+                                $('input[name="new_name"]').val(student.name);
+                                $('input[name="new_student_id"]').val(student.student_id);
+                                $('select[name="new_enrollment_year"]').val(student.enrollment_year);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('获取学生信息失败:', error);
+                        alert('获取学生信息失败: ' + error.message);
+                    });
+            }
+        });
+
+        // 提交修改学生表单
+        $('#modifyStudentForm').submit(function(e) {
+            e.preventDefault();
+            const studentId = $('#modifyStudentSelect').val();
+            if (!studentId) {
+                alert('请选择要修改的学生');
+                return;
+            }
+
+            const formData = {
+                name: $('input[name="new_name"]').val(),
+                student_id: $('input[name="new_student_id"]').val(),
+                enrollment_year: parseInt($('select[name="new_enrollment_year"]').val())
+            };
+
+            // 验证数据
+            if (!formData.name || !formData.student_id || !formData.enrollment_year) {
+                alert('请填写所有必要字段');
+                return;
+            }
+
+            window.updateStudent(studentId, formData)
+                .then(response => {
+                    if (response.success) {
+                        alert('学生信息修改成功');
+                        $('#modifyStudentForm')[0].reset();
+                        refreshAllData();
+                    }
+                })
+                .catch(error => {
+                    alert('修改失败: ' + error.message);
+                });
+        });
+
+        // 删除学生按钮点击事件
+        $(document).ready(function() {
+            $('#deleteStudentButton').on('click', function() {
+                const studentId = $('#deleteStudentSelect').val();
+                if (!studentId) {
+                    alert('请选择要删除的学生');
+                    return;
+                }
+
+                if (confirm('确定要删除这个学生吗？\n删除后将无法恢复，且相关的选课记录和成绩记录也会被删除。')) {
+                    window.deleteStudent(studentId)
+                        .then(response => {
+                            if (response && response.success) {
+                                alert('学生删除成功');
+                                $('#deleteStudentSelect').val('');  // 清空选择
+                                refreshAllData();  // 刷新数
+                            } else {
+                                throw new Error(response.message || '删除失败');
+                            }
+                        })
+                        .catch(error => {
+                            alert('删除失败: ' + (error.message || '未知错误'));
+                        });
+                }
+            });
+        });
+
+        // 过滤学生
+        function filterStudents(searchText) {
+            const select = $('#studentSelect');
+            select.empty();
+            select.append('<option value="">选择学生</option>');
+            
+            if (!window.studentsList) return;
+
+            const filteredStudents = filterDataWithLimit(window.studentsList, searchText);
+            
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+
+        // 修改加载学生列表函数
+        function loadStudentsForEnroll() {
+            window.getStudents()
+                .then(response => {
+                    if (response && response.success) {
+                        const select = $('#enrollStudentSelect');
+                        select.empty();
+                        select.append('<option value="">选择学生</option>');
+                        response.data.forEach(student => {
+                            select.append(`<option value="${student.student_id}">
+                                ${student.name} - ${student.student_id}
+                            </option>`);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('加载学生列表失败:', error);
+                });
+        }
+
+        // 过滤报名学生选择框
+        function filterEnrollStudents(searchText) {
+            const select = $('#enrollStudentSelect');
+            select.empty();
+            select.append('<option value="">选择学生</option>');
+            
+            if (!window.enrollStudentsList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredStudents = window.enrollStudentsList.filter(student => 
+                student.name.toLowerCase().includes(searchLower) ||
+                student.student_id.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+
+        // 加载报名课程列表
+        function loadCoursesForEnroll() {
+            window.getCourses()
+                .then(response => {
+                    if (response && response.success) {
+                        window.enrollCoursesList = response.data;  // 保存课程列表
+                        filterEnrollCourses('');  // 初始显示前25条记录
+                    }
+                })
+                .catch(error => {
+                    console.error('加载课程列表失败:', error);
+                });
+        }
+
+        // 过滤报名课程选择框
+        function filterEnrollCourses(searchText) {
+            const select = $('#enrollCourseSelect');
+            select.empty();
+            select.append('<option value="">选择课程</option>');
+            
+            if (!window.enrollCoursesList) return;
+
+            const filteredCourses = filterDataWithLimit(window.enrollCoursesList, searchText);
+            
+            if (filteredCourses.length > 0) {
+                filteredCourses.forEach(course => {
+                    select.append(`<option value="${course.id}">${course.name}</option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配课程</option>');
+            }
+        }
+
+        // 修改查看选课的过滤学生函数
+        function filterViewStudents(searchText) {
+            const select = $('#studentSelect');
+            select.empty();
+            select.append('<option value="">选择学生</option>');
+            
+            if (!window.studentsList) return;
+
+            const filteredStudents = filterDataWithLimit(window.studentsList, searchText);
+            
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+
+        // 修改学生搜索过滤函数
+        function filterModifyStudents(searchText) {
+            const select = $('#modifyStudentSelect');
+            select.empty();
+            select.append('<option value="">选择学生</option>');
+            
+            if (!window.studentsList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredStudents = window.studentsList.filter(student => 
+                student.name.toLowerCase().includes(searchLower) ||
+                student.student_id.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+
+        // 加载所有学生数据
+        function loadAllStudents() {
+            window.getStudents()
+                .then(response => {
+                    if (response && response.success) {
+                        window.studentsList = response.data;
+                        // 初始化所有学生选择框
+                        initStudentSelects();
+                    }
+                })
+                .catch(error => {
+                    console.error('加载学生列表失败:', error);
+                });
+        }
+
+        // 初始化所有学生选择框
+        function initStudentSelects() {
+            const modifySelect = $('#modifyStudentSelect');
+            const deleteSelect = $('#deleteStudentSelect');
+            modifySelect.empty().append('<option value="">选择学生</option>');
+            deleteSelect.empty().append('<option value="">选择学生</option>');
+
+            if (window.studentsList && window.studentsList.length > 0) {
+                window.studentsList.forEach(student => {
+                    const option = `<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`;
+                    modifySelect.append(option);
+                    deleteSelect.append(option);
+                });
+            }
+        }
+
+        // 过滤修改学生选择框
+        function filterModifyStudents(searchText) {
+            const select = $('#modifyStudentSelect');
+            select.empty();
+            select.append('<option value="">选学生</option>');
+            
+            if (!window.studentsList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredStudents = window.studentsList.filter(student => 
+                student.name.toLowerCase().includes(searchLower) ||
+                student.student_id.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+
+        // 过滤删除学生选择框
+        function filterDeleteStudents(searchText) {
+            const select = $('#deleteStudentSelect');
+            select.empty();
+            select.append('<option value="">选择学生</option>');
+            
+            if (!window.studentsList || !searchText.trim()) {
+                return;
+            }
+
+            const filteredStudents = window.studentsList.filter(student => 
+                student.name.toLowerCase().includes(searchText.toLowerCase()) ||
+                student.student_id.toLowerCase().includes(searchText.toLowerCase())
+            );
+
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+
+        // 加载学生列表（用于查看选课）
+        function loadStudentsForView() {
+            window.getStudents()
+                .then(response => {
+                    if (response && response.success) {
+                        window.studentsList = response.data;  // 保存学生列表
+                        filterViewStudents('');  // 初始显示前25条记录
+                    }
+                })
+                .catch(error => {
+                    console.error('加载学生列表失败:', error);
+                });
+        }
+
+        // 过滤查看选课的学生选择框
+        function filterViewStudents(searchText) {
+            const select = $('#studentSelect');
+            select.empty();
+            select.append('<option value="">选择学生</option>');
+            
+            if (!window.studentsList) return;
+
+            const filteredStudents = filterDataWithLimit(window.studentsList, searchText);
+            
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+
+        // 修改页面切换函数
+        function showViewCourses() {
+            $('#viewCoursesArea').show();
+            $('#addStudentForm, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea').hide();
+            loadStudentsForView();  // 加载学生列表
+            
+            // 绑定搜索事件
+            $('#viewStudentSearch').off('input').on('input', function() {
+                const searchText = $(this).val().trim();
+                filterViewStudents(searchText);
+            });
+        }
+
+        // 过滤报名课程选择框
+        function filterEnrollCourses(searchText) {
+            const select = $('#enrollCourseSelect');
+            select.empty();
+            select.append('<option value="">选择课程</option>');
+            
+            if (!window.enrollCoursesList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredCourses = window.enrollCoursesList.filter(course => 
+                course.name.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredCourses.length > 0) {
+                filteredCourses.forEach(course => {
+                    select.append(`<option value="${course.id}">${course.name}</option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配课程</option>');
+            }
+        }
+    </script>
+</body>
+</html> 
