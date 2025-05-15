@@ -27,7 +27,7 @@ def reset_database():
     db_path = os.path.join(os.path.dirname(__file__), '../database/edu_system.db')
     if os.path.exists(db_path):
         os.remove(db_path)
-    
+
     # 初始化数据库
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
@@ -41,9 +41,9 @@ def reset_database():
     ''')
     conn.commit()
     conn.close()
-    
+
     yield  # 测试运行在此处
-    
+
     # 测试完成后删除数据库文件
     if os.path.exists(db_path):
         os.remove(db_path)

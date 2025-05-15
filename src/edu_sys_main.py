@@ -100,7 +100,7 @@ def login():
         session['username'] = username
         return jsonify({'success': True, 'message': '登录成功'})
 
-    return jsonify({'success': False, 'message': '用户名或密码错误'})
+    return jsonify({'success': False, 'message': '用户名或密码错误'}),400
 
 # 添加注册路由
 @app.route('/register', methods=['POST'])
@@ -144,7 +144,8 @@ def register():
             'message': str(e)
         }), 500
     finally:
-        conn.close()
+        if 'conn' in locals() and conn:  # 检查 conn 是否已定义
+            conn.close()
 
 @app.route('/main')
 @login_required
@@ -594,29 +595,29 @@ def add_student_course():
         data = request.get_json()
         conn = get_db()
         cursor = conn.cursor()
-        
+
         # 检查学生是否已选这门课
         cursor.execute('''
-            SELECT 1 FROM student_courses 
+            SELECT 1 FROM student_courses
             WHERE student_id = (
                 SELECT id FROM students WHERE student_id = ?
             ) AND course_id = ?
         ''', (data['student_id'], data['course_id']))
-        
+
         if cursor.fetchone():
             return jsonify({
                 'success': False,
                 'message': '该学生已经选择了这门课程'
             }), 400
-            
+
         # 添加选课记录
         cursor.execute('''
             INSERT INTO student_courses (student_id, course_id)
-            SELECT s.id, ? 
-            FROM students s 
+            SELECT s.id, ?
+            FROM students s
             WHERE s.student_id = ?
         ''', (data['course_id'], data['student_id']))
-        
+
         conn.commit()
         return jsonify({
             'success': True,
@@ -639,17 +640,17 @@ def get_course_grades():
     try:
         conn = get_db()
         cursor = conn.cursor()
-        
+
         # 获取所有课程及其学生成绩
         cursor.execute('''
             SELECT c.*, s.name as student_name, s.student_id,
-                   g.usual_grade, g.midterm_grade, g.final_grade
+                g.usual_grade, g.midterm_grade, g.final_grade
             FROM courses c
             LEFT JOIN grades g ON c.id = g.course_id
             LEFT JOIN students s ON g.student_id = s.id
             ORDER BY c.id, s.name
         ''')
-        
+
         courses = {}
         for row in cursor.fetchall():
             row_dict = dict(row)
@@ -668,7 +669,7 @@ def get_course_grades():
                     'midterm_grade': row_dict['midterm_grade'] or 0,
                     'final_grade': row_dict['final_grade'] or 0
                 })
-        
+
         return jsonify({
             'success': True,
             'data': list(courses.values()),
@@ -690,10 +691,10 @@ def save_course_grades():
         data = request.get_json()
         conn = get_db()
         cursor = conn.cursor()
-        
+
         for grade in data['grades']:
             cursor.execute('''
-                INSERT OR REPLACE INTO grades 
+                INSERT OR REPLACE INTO grades
                 (student_id, course_id, usual_grade, midterm_grade, final_grade)
                 VALUES (?, ?, ?, ?, ?)
             ''', (
@@ -703,7 +704,7 @@ def save_course_grades():
                 grade['midterm_grade'],
                 grade['final_grade']
             ))
-        
+
         conn.commit()
         return jsonify({
             'success': True,
@@ -723,7 +724,7 @@ def delete_student(student_id):
     try:
         conn = get_db()
         cursor = conn.cursor()
-        
+
         # 获取学生的内部ID
         cursor.execute('SELECT id FROM students WHERE student_id = ?', (student_id,))
         student = cursor.fetchone()
@@ -732,16 +733,16 @@ def delete_student(student_id):
                 'success': False,
                 'message': '找不到该学生'
             }), 404
-            
+
         student_internal_id = student['id']
-        
+
         # 删除相关的选课记录
         cursor.execute('DELETE FROM student_courses WHERE student_id = ?', (student_internal_id,))
         # 删除相关的成绩记录
         cursor.execute('DELETE FROM grades WHERE student_id = ?', (student_internal_id,))
         # 删除学生
         cursor.execute('DELETE FROM students WHERE id = ?', (student_internal_id,))
-        
+
         conn.commit()
         return jsonify({
             'success': True,
@@ -755,7 +756,8 @@ def delete_student(student_id):
             'message': str(e)
         }), 500
     finally:
-        conn.close()
+        if 'conn' in locals() and conn:  # 检查 conn 是否已定义
+            conn.close()
 
 @app.route('/api/teachers/<teacher_id>', methods=['DELETE'])
 @login_required
@@ -763,7 +765,7 @@ def delete_teacher(teacher_id):
     try:
         conn = get_db()
         cursor = conn.cursor()
-        
+
         # 获取教师的内部ID
         cursor.execute('SELECT id FROM teachers WHERE teacher_id = ?', (teacher_id,))
         teacher = cursor.fetchone()
