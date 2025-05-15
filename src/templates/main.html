@@ -1,76 +1,167 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>在线教育平台管理系统</title>
+    <title>教学管理系统</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/animations.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/api.js"></script>
     <style>
         .sidebar {
             position: fixed;
             top: 0;
             bottom: 0;
             left: 0;
-            z-index: 100;
-            padding: 48px 0 0;
-            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
             width: 200px;
-        }
-        .main-content {
-            margin-left: 200px;
-            padding: 20px;
-        }
-        .nav-link {
-            padding: 10px 15px;
-        }
-        .nav-link:hover {
+            padding: 20px 0;
             background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            transition: all 0.3s ease;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-heading {
+            padding: 10px 15px;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 20px;
+            color: #007bff;
+        }
+
+        .nav-link {
+            color: #495057;
+            padding: 8px 15px;
+        }
+
+        .nav-link:hover {
+            background-color: #e9ecef;
+        }
+
+        .nav-link.active {
+            background-color: #007bff;
+            color: #fff;
+        }
+
+        .content-frame {
+            margin-left: 200px;
+            height: 100vh;
+            width: calc(100% - 200px);
+            border: none;
+            transition: all 0.3s ease;
+        }
+
+        .user-info {
+            position: absolute;
+            bottom: 20px;
+            left: 15px;
+            right: 15px;
+            padding: 10px;
+            border-top: 1px solid #dee2e6;
+            transition: all 0.3s ease;
         }
     </style>
 </head>
-<body>
-    <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
-        <div class="position-sticky">
-            <ul class="nav flex-column">
-                <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="loadContent('courses')">课程管理</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="loadContent('students')">学生管理</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="loadContent('teachers')">教师管理</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="loadContent('progress')">学习进度</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="loadContent('interaction')">作业管理</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/logout">退出登录</a>
-                </li>
-            </ul>
-        </div>
-    </nav>
 
-    <main class="main-content">
-        <div id="content">
-            <!-- 内容将通过AJAX动态加载 -->
+<body>
+    <div class="sidebar">
+        <div class="sidebar-heading">教学管理系统</div>
+        <div class="nav flex-column">
+            <!-- 教师可见菜单 -->
+            <div id="teacherMenu" class="fade-in" style="display: none;">
+                <a href="/courses" target="contentFrame" class="nav-link ripple-transition">课程管理</a>
+                <a href="/students" target="contentFrame" class="nav-link ripple-transition">学生管理</a>
+                <a href="/teachers" target="contentFrame" class="nav-link ripple-transition">教师管理</a>
+                <a href="/progress" target="contentFrame" class="nav-link ripple-transition">成绩管理</a>
+                <a href="/interaction" target="contentFrame" class="nav-link ripple-transition">作业管理</a>
+            </div>
+
+            <!-- 学生可见菜单 -->
+            <div id="studentMenu" class="fade-in" style="display: none;">
+                <a href="/student/courses" target="contentFrame" class="nav-link ripple-transition">我的课程</a>
+                <a href="/student/progress" target="contentFrame" class="nav-link ripple-transition">我的成绩</a>
+                <a href="/student/assignments" target="contentFrame" class="nav-link ripple-transition">我的作业</a>
+            </div>
+
+            <!-- 管理员可见菜单 -->
+            <div id="adminMenu" class="fade-in" style="display: none;">
+                <a href="/courses" target="contentFrame" class="nav-link ripple-transition">课程管理</a>
+                <a href="/students" target="contentFrame" class="nav-link ripple-transition">学生管理</a>
+                <a href="/teachers" target="contentFrame" class="nav-link ripple-transition">教师管理</a>
+                <a href="/progress" target="contentFrame" class="nav-link ripple-transition">成绩管理</a>
+                <a href="/interaction" target="contentFrame" class="nav-link ripple-transition">作业管理</a>
+            </div>
         </div>
-    </main>
+
+        <div class="user-info">
+            <div>
+                当前用户: <span id="currentUsername"></span>
+                <br>
+                身份: <span id="currentRole"></span>
+            </div>
+            <button class="btn btn-danger btn-sm logout-btn ripple-btn" onclick="logout()">退出登录</button>
+        </div>
+    </div>
+
+    <iframe id="contentFrame" name="contentFrame" class="content-frame fade-in"></iframe>
 
     <script>
-        function loadContent(page) {
-            $.get(`/${page}`, function(data) {
-                $('#content').html(data);
-            });
-        }
+        $(document).ready(function () {
+            // 获取当前用户信息
+            fetch('/api/current-user')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        $('#currentUsername').text(data.data.username);
 
-        // 默认加载课程管理页面
-        $(document).ready(function() {
-            loadContent('courses');
+                        // 根据角色设置显示内容
+                        const role = data.data.role;
+                        if (role === 'teacher') {
+                            $('#currentRole').text('教师');
+                            $('#teacherMenu').show();
+                            $('#contentFrame').attr('src', '/courses');
+                        } else if (role === 'student') {
+                            $('#currentRole').text('学生');
+                            $('#studentMenu').show();
+                            $('#contentFrame').attr('src', '/student/courses');
+                        } else if (role === 'admin') {
+                            $('#currentRole').text('管理员');
+                            $('#adminMenu').show();
+                            $('#contentFrame').attr('src', '/courses');
+                        }
+                    } else {
+                        window.location.href = '/';
+                    }
+                })
+                .catch(error => {
+                    console.error('获取用户信息失败:', error);
+                    window.location.href = '/';
+                });
+
+            // 为菜单项添加动画效果
+            $('.nav-link').click(function () {
+                $('.nav-link').removeClass('active');
+                $(this).addClass('active');
+            });
         });
+
+        function logout() {
+            // 添加淡出动画
+            $('.sidebar').css('transform', 'translateX(-100%)');
+            $('#contentFrame').css('opacity', '0');
+
+            setTimeout(function () {
+                fetch('/logout')
+                    .then(() => {
+                        window.location.href = '/';
+                    })
+                    .catch(error => {
+                        console.error('退出失败:', error);
+                        alert('退出失败，请重试');
+                    });
+            }, 300);
+        }
     </script>
 </body>
-</html> 
+
+</html>

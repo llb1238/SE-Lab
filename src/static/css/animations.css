@@ -1,0 +1,184 @@
+/* 动画和过渡效果 */
+
+/* 页面淡入效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* 水滴滑动动画 */
+@keyframes rippleEffect {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 对元素应用渐入动画 */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* 水滴过渡效果 */
+.ripple-transition {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* 悬停时的水滴效果 */
+.ripple-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* 按钮点击时的水滴效果 */
+.ripple-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-btn:after {
+  content: "";
+  display: block;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  background-image: radial-gradient(circle, #fff 10%, transparent 10.01%);
+  background-repeat: no-repeat;
+  background-position: 50%;
+  transform: scale(10, 10);
+  opacity: 0;
+  transition: transform 0.5s, opacity 1s;
+}
+
+.ripple-btn:active:after {
+  transform: scale(0, 0);
+  opacity: 0.3;
+  transition: 0s;
+}
+
+/* 区域切换动画 */
+.slide-fade-enter {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.slide-fade-enter-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-fade-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.slide-fade-exit-active {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease-in;
+}
+
+/* 卡片水滴效果 */
+.card-ripple {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+
+.card-ripple:hover {
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.25), 0 10px 10px rgba(0, 0, 0, 0.22);
+  transform: translateY(-5px);
+}
+
+/* 表单元素过渡效果 */
+.form-control {
+  transition: all 0.3s ease;
+  border: 1px solid #ced4da;
+}
+
+.form-control:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+  transform: translateY(-2px);
+}
+
+/* 各种按钮水滴效果 */
+.btn {
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 14px rgba(0, 0, 0, 0.1), 0 5px 5px rgba(0, 0, 0, 0.1);
+}
+
+.btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* 页面内容区域的滑入效果 */
+.content-area {
+  animation: fadeIn 0.5s ease;
+}
+
+/* 菜单项过渡效果 */
+.nav-link {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.nav-link:after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 50%;
+  background-color: #007bff;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover:after {
+  width: 100%;
+  left: 0;
+}
+
+/* 弹窗动画效果 */
+.modal.fade .modal-dialog {
+  transition: transform 0.3s ease-out;
+  transform: translateY(-50px);
+}
+
+.modal.show .modal-dialog {
+  transform: none;
+}
+
+/* 表格行悬停效果 */
+.table tbody tr {
+  transition: all 0.3s ease;
+}
+
+.table tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}

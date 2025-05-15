@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>学生管理</title>
     <style>
@@ -8,18 +9,25 @@
             display: flex;
             gap: 10px;
         }
+
         .content-area {
             padding: 20px;
             margin-left: 200px;
         }
+
         .search-area {
             margin-bottom: 20px;
         }
+
         .form-group {
             margin-bottom: 15px;
         }
-        #addStudentForm, #viewCoursesArea, #enrollCourseArea, 
-        #modifyStudentArea, #deleteStudentArea {
+
+        #addStudentForm,
+        #viewCoursesArea,
+        #enrollCourseArea,
+        #modifyStudentArea,
+        #deleteStudentArea {
             margin-top: 20px;
             padding: 20px;
             background-color: #f8f9fa;
@@ -27,6 +35,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="content-area">
         <div class="action-buttons">
@@ -48,12 +57,6 @@
                 <div class="form-group">
                     <label>学号:</label>
                     <input type="text" class="form-control" name="student_id" required>
-                </div>
-                <div class="form-group">
-                    <label>入学年份:</label>
-                    <select class="form-control" name="enrollment_year" required>
-                        <option value="">选择入学年份</option>
-                    </select>
                 </div>
                 <button type="submit" class="btn btn-primary mt-3">注册</button>
             </form>
@@ -120,12 +123,6 @@
                     <label>新学号:</label>
                     <input type="text" class="form-control" name="new_student_id" required>
                 </div>
-                <div class="form-group">
-                    <label>新入学年份:</label>
-                    <select class="form-control" name="new_enrollment_year" required>
-                        <option value="">选择入学年份</option>
-                    </select>
-                </div>
                 <button type="submit" class="btn btn-warning mt-3">修改</button>
             </form>
         </div>
@@ -175,21 +172,21 @@
             const select = $('#enrollCourseSelect');
             select.empty();
             select.append('<option value="">选择课程</option>');
-            
+
             window.getCourses()
                 .then(response => {
                     console.log('收到课程数据响应:', response);  // 调试日志
-                    
+
                     if (response && response.success && Array.isArray(response.data)) {
                         if (response.data.length > 0) {
                             window.coursesList = response.data;  // 保存课程列表
-                            
+
                             response.data.forEach(course => {
                                 const option = `<option value="${course.id}">${course.name}</option>`;
                                 select.append(option);
                                 console.log('添加课程选项:', course.name);  // 调试日志
                             });
-                            
+
                             console.log(`课程列表加载完成，共加载 ${response.data.length} 门课程`);
                         } else {
                             select.append('<option value="" disabled>暂无可选课程</option>');
@@ -211,13 +208,13 @@
             const select = $('#enrollCourseSelect');
             select.empty();
             select.append('<option value="">选择课程</option>');
-            
+
             if (!window.coursesList || !searchText.trim()) {
                 return;
             }
 
             const searchLower = searchText.toLowerCase();
-            const filteredCourses = window.coursesList.filter(course => 
+            const filteredCourses = window.coursesList.filter(course =>
                 course.name.toLowerCase().includes(searchLower)
             );
 
@@ -231,13 +228,12 @@
         }
 
         // 注册学生
-        $('#studentForm').submit(function(e) {
+        $('#studentForm').submit(function (e) {
             e.preventDefault();
-            
+
             const formData = {
                 name: $('input[name="name"]').val(),
-                student_id: $('input[name="student_id"]').val(),
-                enrollment_year: parseInt($('select[name="enrollment_year"]').val())
+                student_id: $('input[name="student_id"]').val()
             };
 
             window.addStudent(formData)
@@ -267,24 +263,15 @@
                 // 获取学生信息
                 const studentResponse = await window.getStudents();
                 const student = studentResponse.data.find(s => s.student_id === studentId);
-                
+
                 // 获取课程信息
                 const courseResponse = await window.getCourses();
                 const course = courseResponse.data.find(c => c.id === parseInt(courseId));
-                
-                // 检查年级是否匹配
-                const studentYear = student.enrollment_year;
-                const courseYear = getCourseYear(course.learn_time);  // 根据课程的learn_time判断年级
-                if (studentYear !== courseYear) {
-                    if (!confirm(`警告：该课程是为${course.learn_time}学生开设的，而该学生是${studentYear}级的。\n是否确定要报名？`)) {
-                        return;
-                    }
-                }
 
                 // 检查时间冲突
                 const studentCoursesResponse = await window.getStudentCourses(studentId);
                 const existingCourses = studentCoursesResponse.data;
-                
+
                 if (hasTimeConflict(course, existingCourses)) {
                     alert('时间冲突：该生在所选课程的时间段已有其他课程！');
                     return;
@@ -306,11 +293,11 @@
         // 检查时间冲突
         function hasTimeConflict(newCourse, existingCourses) {
             const newTimes = newCourse.times.split('|');
-            
+
             for (const course of existingCourses) {
                 if (!course.times) continue;
                 const existingTimes = course.times.split('|');
-                
+
                 // 检查每个时间段是否有冲突
                 for (const newTime of newTimes) {
                     if (existingTimes.includes(newTime)) {
@@ -319,18 +306,6 @@
                 }
             }
             return false;
-        }
-
-        // 根据课程的learn_time判断年级
-        function getCourseYear(learnTime) {
-            const currentYear = new Date().getFullYear();
-            switch (learnTime) {
-                case '大一': return currentYear;
-                case '大二': return currentYear - 1;
-                case '大三': return currentYear - 2;
-                case '大四': return currentYear - 3;
-                default: return currentYear;
-            }
         }
 
         // 查看学生课程
@@ -359,7 +334,7 @@
         }
 
         // 修改学生选择事件
-        $('#studentSelect').change(function() {
+        $('#studentSelect').change(function () {
             const studentId = $(this).val();
             if (studentId) {
                 loadStudentCourses(studentId);
@@ -369,8 +344,7 @@
         });
 
         // 页面加载时初始化数据
-        $(document).ready(function() {
-            initEnrollmentYears();
+        $(document).ready(function () {
             refreshAllData(); // 确保学生和课程数据都加载
             loadAllStudents();
 
@@ -378,7 +352,7 @@
             $('#viewCoursesArea, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea').hide();
 
             // 学生搜索输入监听
-            $('#viewStudentSearch').on('input', function() {
+            $('#viewStudentSearch').on('input', function () {
                 const searchText = $(this).val().toLowerCase();
                 filterStudents(searchText);
             });
@@ -395,9 +369,9 @@
             $('#viewCoursesArea').show();
             $('#addStudentForm, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea').hide();
             loadStudentsForView();  // 加载学生列表
-            
+
             // 绑定搜索事件
-            $('#viewStudentSearch').off('input').on('input', function() {
+            $('#viewStudentSearch').off('input').on('input', function () {
                 const searchText = $(this).val().trim();
                 filterViewStudents(searchText);
             });
@@ -414,7 +388,6 @@
         function showModifyStudent() {
             $('#modifyStudentArea').show();
             $('#addStudentForm, #viewCoursesArea, #enrollCourseArea, #deleteStudentArea').hide();
-            initEnrollmentYears();  // 初始化入学年份选择器
             loadAllStudents();     // 加载学生数据
         }
 
@@ -459,21 +432,8 @@
                 });
         }
 
-        // 初始化入学年份选择器
-        function initEnrollmentYears() {
-            const yearSelects = $('select[name="enrollment_year"], select[name="new_enrollment_year"]');
-            const currentYear = new Date().getFullYear();
-            yearSelects.empty();
-            yearSelects.append('<option value="">选择入学年份</option>');
-            
-            // 添加近5年的选项
-            for (let year = currentYear; year >= currentYear - 4; year--) {
-                yearSelects.append(`<option value="${year}">${year}</option>`);
-            }
-        }
-
         // 修改学生信息加载
-        $('#modifyStudentSelect').change(function() {
+        $('#modifyStudentSelect').change(function () {
             const studentId = $(this).val();
             if (studentId) {
                 getStudents()
@@ -483,7 +443,6 @@
                             if (student) {
                                 $('input[name="new_name"]').val(student.name);
                                 $('input[name="new_student_id"]').val(student.student_id);
-                                $('select[name="new_enrollment_year"]').val(student.enrollment_year);
                             }
                         }
                     })
@@ -495,7 +454,7 @@
         });
 
         // 提交修改学生表单
-        $('#modifyStudentForm').submit(function(e) {
+        $('#modifyStudentForm').submit(function (e) {
             e.preventDefault();
             const studentId = $('#modifyStudentSelect').val();
             if (!studentId) {
@@ -505,12 +464,11 @@
 
             const formData = {
                 name: $('input[name="new_name"]').val(),
-                student_id: $('input[name="new_student_id"]').val(),
-                enrollment_year: parseInt($('select[name="new_enrollment_year"]').val())
+                student_id: $('input[name="new_student_id"]').val()
             };
 
             // 验证数据
-            if (!formData.name || !formData.student_id || !formData.enrollment_year) {
+            if (!formData.name || !formData.student_id) {
                 alert('请填写所有必要字段');
                 return;
             }
@@ -529,8 +487,8 @@
         });
 
         // 删除学生按钮点击事件
-        $(document).ready(function() {
-            $('#deleteStudentButton').on('click', function() {
+        $(document).ready(function () {
+            $('#deleteStudentButton').on('click', function () {
                 const studentId = $('#deleteStudentSelect').val();
                 if (!studentId) {
                     alert('请选择要删除的学生');
@@ -560,11 +518,11 @@
             const select = $('#studentSelect');
             select.empty();
             select.append('<option value="">选择学生</option>');
-            
+
             if (!window.studentsList) return;
 
             const filteredStudents = filterDataWithLimit(window.studentsList, searchText);
-            
+
             if (filteredStudents.length > 0) {
                 filteredStudents.forEach(student => {
                     select.append(`<option value="${student.student_id}">
@@ -601,13 +559,13 @@
             const select = $('#enrollStudentSelect');
             select.empty();
             select.append('<option value="">选择学生</option>');
-            
+
             if (!window.enrollStudentsList || !searchText.trim()) {
                 return;
             }
 
             const searchLower = searchText.toLowerCase();
-            const filteredStudents = window.enrollStudentsList.filter(student => 
+            const filteredStudents = window.enrollStudentsList.filter(student =>
                 student.name.toLowerCase().includes(searchLower) ||
                 student.student_id.toLowerCase().includes(searchLower)
             );
@@ -642,11 +600,11 @@
             const select = $('#enrollCourseSelect');
             select.empty();
             select.append('<option value="">选择课程</option>');
-            
+
             if (!window.enrollCoursesList) return;
 
             const filteredCourses = filterDataWithLimit(window.enrollCoursesList, searchText);
-            
+
             if (filteredCourses.length > 0) {
                 filteredCourses.forEach(course => {
                     select.append(`<option value="${course.id}">${course.name}</option>`);
@@ -661,11 +619,11 @@
             const select = $('#studentSelect');
             select.empty();
             select.append('<option value="">选择学生</option>');
-            
+
             if (!window.studentsList) return;
 
             const filteredStudents = filterDataWithLimit(window.studentsList, searchText);
-            
+
             if (filteredStudents.length > 0) {
                 filteredStudents.forEach(student => {
                     select.append(`<option value="${student.student_id}">
@@ -682,13 +640,13 @@
             const select = $('#modifyStudentSelect');
             select.empty();
             select.append('<option value="">选择学生</option>');
-            
+
             if (!window.studentsList || !searchText.trim()) {
                 return;
             }
 
             const searchLower = searchText.toLowerCase();
-            const filteredStudents = window.studentsList.filter(student => 
+            const filteredStudents = window.studentsList.filter(student =>
                 student.name.toLowerCase().includes(searchLower) ||
                 student.student_id.toLowerCase().includes(searchLower)
             );
@@ -742,13 +700,13 @@
             const select = $('#modifyStudentSelect');
             select.empty();
             select.append('<option value="">选学生</option>');
-            
+
             if (!window.studentsList || !searchText.trim()) {
                 return;
             }
 
             const searchLower = searchText.toLowerCase();
-            const filteredStudents = window.studentsList.filter(student => 
+            const filteredStudents = window.studentsList.filter(student =>
                 student.name.toLowerCase().includes(searchLower) ||
                 student.student_id.toLowerCase().includes(searchLower)
             );
@@ -769,12 +727,12 @@
             const select = $('#deleteStudentSelect');
             select.empty();
             select.append('<option value="">选择学生</option>');
-            
+
             if (!window.studentsList || !searchText.trim()) {
                 return;
             }
 
-            const filteredStudents = window.studentsList.filter(student => 
+            const filteredStudents = window.studentsList.filter(student =>
                 student.name.toLowerCase().includes(searchText.toLowerCase()) ||
                 student.student_id.toLowerCase().includes(searchText.toLowerCase())
             );
@@ -809,11 +767,11 @@
             const select = $('#studentSelect');
             select.empty();
             select.append('<option value="">选择学生</option>');
-            
+
             if (!window.studentsList) return;
 
             const filteredStudents = filterDataWithLimit(window.studentsList, searchText);
-            
+
             if (filteredStudents.length > 0) {
                 filteredStudents.forEach(student => {
                     select.append(`<option value="${student.student_id}">
@@ -830,9 +788,9 @@
             $('#viewCoursesArea').show();
             $('#addStudentForm, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea').hide();
             loadStudentsForView();  // 加载学生列表
-            
+
             // 绑定搜索事件
-            $('#viewStudentSearch').off('input').on('input', function() {
+            $('#viewStudentSearch').off('input').on('input', function () {
                 const searchText = $(this).val().trim();
                 filterViewStudents(searchText);
             });
@@ -843,13 +801,13 @@
             const select = $('#enrollCourseSelect');
             select.empty();
             select.append('<option value="">选择课程</option>');
-            
+
             if (!window.enrollCoursesList || !searchText.trim()) {
                 return;
             }
 
             const searchLower = searchText.toLowerCase();
-            const filteredCourses = window.enrollCoursesList.filter(course => 
+            const filteredCourses = window.enrollCoursesList.filter(course =>
                 course.name.toLowerCase().includes(searchLower)
             );
 
@@ -863,4 +821,5 @@
         }
     </script>
 </body>
-</html> 
+
+</html>
