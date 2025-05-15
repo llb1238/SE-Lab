@@ -643,7 +643,7 @@ def get_students():
             'data': []
         }), 500
 
-# 修改学生API路由，不需要enrollment_year字段
+# 修改学生API路由，处理enrollment_year参数
 @app.route('/api/students', methods=['POST'])
 @login_required
 @role_required(['admin'])  # 只允许管理员添加学生
@@ -661,14 +661,18 @@ def add_student():
                     'message': f'缺少必要字段: {field}'
                 }), 400
 
-        # 添加记录 - 只使用name和student_id
+        # 添加记录 - 使用name和student_id，可选enrollment_year
         student_data = {
             'name': data['name'],
             'student_id': data['student_id']
         }
         
+        # 如果提供了入学年份，添加到数据中
+        if 'enrollment_year' in data and data['enrollment_year']:
+            student_data['enrollment_year'] = data['enrollment_year']
+        
         try:
-            # 尝试仅插入name和student_id
+            # 尝试插入学生记录
             new_id = add_record('students', student_data)
         except sqlite3.IntegrityError as e:
             if 'NOT NULL constraint failed' in str(e) and 'enrollment_year' in str(e):

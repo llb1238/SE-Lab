@@ -165,6 +165,12 @@
                     <label class="form-label">学号:</label>
                     <input type="text" class="form-control" name="student_id" required>
                 </div>
+                <!-- 添加入学年份字段 -->
+                <div class="form-group">
+                    <label class="form-label">入学年份:</label>
+                    <input type="number" class="form-control" name="enrollment_year" min="1990" max="2030" placeholder="例如: 2023">
+                    <small class="form-text text-muted">请输入4位数年份，例如2023</small>
+                </div>
                 <button type="submit" class="btn btn-primary mt-3">注册</button>
             </form>
         </div>
@@ -359,7 +365,8 @@
 
             const formData = {
                 name: $('input[name="name"]').val(),
-                student_id: $('input[name="student_id"]').val()
+                student_id: $('input[name="student_id"]').val(),
+                enrollment_year: $('input[name="enrollment_year"]').val()
             };
 
             window.addStudent(formData)
