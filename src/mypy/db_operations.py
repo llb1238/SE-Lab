@@ -1,5 +1,5 @@
 import sqlite3
-from py.config import DATABASE_PATH
+from .config import DATABASE_PATH
 import time
 
 def get_db_connection():

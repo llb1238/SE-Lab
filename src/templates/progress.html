@@ -1,285 +1,350 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>学习进度</title>
+    <title>成绩管理</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/animations.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/static/js/api.js"></script>
     <style>
         body {
-            background-image: url('/static/picture/progress.jpg');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center;
-            background-attachment: fixed;
+            background-color: #f8f9fc;
+            font-family: 'Microsoft YaHei', sans-serif;
         }
+
         .content-area {
             padding: 20px;
             margin-left: 200px;
         }
+
         .form-group {
             margin-bottom: 15px;
         }
+
+        .grade-card {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .grade-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+
         .grade-input {
-            width: 80px;
-        }
-        .course-card {
-            margin-bottom: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
+            width: 70px;
             border-radius: 5px;
+            border: 1px solid #ced4da;
+            padding: 5px;
+            text-align: center;
         }
-        .stats-card {
-            background-color: #f8f9fa;
-            padding: 15px;
+
+        .form-control {
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #ced4da;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
+        }
+
+        h3 {
+            color: #4e73df;
             margin-bottom: 20px;
-            border-radius: 5px;
+        }
+
+        label {
+            color: #5a5c69;
+            font-weight: 500;
+        }
+
+        #saveGradesBtn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #saveGradesBtn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
     </style>
 </head>
+
 <body>
     <div class="content-area">
-        <h3>学习进度跟踪</h3>
-        
-        <!-- 修改学生选择部分 -->
+        <h3>成绩管理</h3>
+
+        <!-- 选择课程 -->
         <div class="form-group">
-            <label>搜索学生:</label>
-            <input type="text" class="form-control" id="studentSearch" placeholder="输入学号或姓名搜索">
-            <select class="form-control mt-2" id="studentSelect">
-                <option value="">选择学生</option>
+            <label>搜索课程:</label>
+            <input type="text" class="form-control" id="courseSearch" placeholder="输入课程名称搜索">
+            <select class="form-control mt-2" id="courseSelect">
+                <option value="">选择课程</option>
             </select>
         </div>
 
-        <!-- 学习统计 -->
-        <div class="stats-card">
-            <h4>学习统计</h4>
-            <div id="studyStats">
-                <p>总学分: <span id="totalCredits">0</span></p>
-                <p>平均分: <span id="averageScore">0</span></p>
-                <p>平均绩点: <span id="gpa">0</span></p>
-            </div>
+        <!-- 学生成绩列表 -->
+        <div id="gradesContainer">
+            <!-- 学生成绩卡片将在这里动态生成 -->
         </div>
 
-        <!-- 课程成绩列表 -->
-        <div id="courseGradesList">
-            <!-- 课程成绩卡片将在这里动态生成 -->
-        </div>
-
-        <!-- 保存按钮 -->
-        <button class="btn btn-primary" onclick="saveAllGrades()">保存所有成绩</button>
+        <!-- 保存成绩按钮 -->
+        <button type="button" class="btn btn-primary" id="saveGradesBtn" style="display: none;">保存成绩</button>
     </div>
 
     <script>
-        // 修改页面加载初始化
-        $(document).ready(function() {
-            loadStudents();
-            
-            // 监听学生搜索输入
-            $('#studentSearch').on('input', function() {
-                const searchText = $(this).val().toLowerCase();
-                filterStudents(searchText);
+        $(document).ready(function () {
+            // 加载当前教师的课程
+            loadCurrentTeacherCourses();
+
+            // 监听课程搜索输入
+            $('#courseSearch').on('input', function () {
+                const searchText = $(this).val().trim();
+                filterCourses(searchText);
             });
-            
-            // 监听学生选择变化
-            $('#studentSelect').change(function() {
-                const studentId = $(this).val();
-                if (studentId) {
-                    loadStudentGrades(studentId);
+
+            // 选择课程时加载学生成绩
+            $('#courseSelect').on('change', function () {
+                const courseId = $(this).val();
+                if (courseId) {
+                    loadCourseStudents(courseId);
+                    $('#saveGradesBtn').show();
                 } else {
-                    clearGradesDisplay();
+                    $('#gradesContainer').empty();
+                    $('#saveGradesBtn').hide();
                 }
+            });
+
+            // 保存成绩按钮点击事件
+            $('#saveGradesBtn').on('click', function () {
+                saveAllGrades();
             });
         });
 
-        // 加载学生列表
-        function loadStudents() {
-            window.getStudents()
-                .then(response => {
-                    if (response && response.success) {
-                        window.studentsList = response.data;  // 保存学生列表
-                        filterStudents('');  // 初始显示所有学生
+        // 加载当前教师的课程
+        function loadCurrentTeacherCourses() {
+            fetch('/api/teacher-courses/current')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.coursesList = data.data;  // 保存课程列表
+                        console.log('教师课程列表已加载:', window.coursesList);  // 调试日志
+                        filterCourses('');  // 初始显示所有课程
+                    } else {
+                        console.error('加载教师课程失败:', data.message);
+                        alert('加载课程列表失败: ' + data.message);
                     }
                 })
                 .catch(error => {
-                    console.error('加载学生列表失败:', error);
-                    alert('加载学生列表失败: ' + error.message);
+                    console.error('加载教师课程列表失败:', error);
+                    alert('加载课程列表失败: ' + error.message);
                 });
         }
 
-        // 过滤学生
-        function filterStudents(searchText) {
-            const select = $('#studentSelect');
+        // 过滤课程
+        function filterCourses(searchText) {
+            const select = $('#courseSelect');
             select.empty();
-            select.append('<option value="">选择学生</option>');
-            
-            if (!window.studentsList) return;
+            select.append('<option value="">选择课程</option>');
 
-            const filteredStudents = filterDataWithLimit(window.studentsList, searchText);
-            
-            if (filteredStudents.length > 0) {
-                filteredStudents.forEach(student => {
-                    select.append(`<option value="${student.student_id}">
-                        ${student.name} - ${student.student_id}
-                    </option>`);
+            if (!window.coursesList) return;
+
+            let filteredCourses;
+            if (!searchText.trim()) {
+                filteredCourses = window.coursesList;  // 如果搜索文本为空，显示所有教师的课程
+            } else {
+                const searchLower = searchText.toLowerCase();
+                filteredCourses = window.coursesList.filter(course =>
+                    course.name.toLowerCase().includes(searchLower)
+                );
+            }
+
+            if (filteredCourses.length > 0) {
+                filteredCourses.forEach(course => {
+                    select.append(`<option value="${course.id}">${course.name}</option>`);
                 });
             } else {
-                select.append('<option value="" disabled>无匹配学生</option>');
+                select.append('<option value="" disabled>无匹配课程</option>');
             }
         }
 
-        // 加载学生成绩
-        function loadStudentGrades(studentId) {
-            window.getStudentGrades(studentId)
-                .then(response => {
-                    if (response && response.success) {
-                        displayGrades(response.data);
-                        calculateStats(response.data);
+        // 加载课程的学生和成绩
+        function loadCourseStudents(courseId) {
+            // 首先获取选了这个课程的学生
+            fetch(`/api/courses/${courseId}/students`)
+                .then(response => response.json())
+                .then(studentsData => {
+                    if (studentsData.success) {
+                        window.courseStudents = studentsData.data;
+
+                        // 获取课程信息
+                        const course = window.coursesList.find(c => c.id == courseId);
+                        if (!course) {
+                            console.error('找不到课程信息:', courseId);
+                            return;
+                        }
+
+                        // 为每个学生获取成绩
+                        Promise.all(studentsData.data.map(student =>
+                            fetch(`/api/students/${student.student_id}/grades`)
+                                .then(res => res.json())
+                                .then(gradesData => {
+                                    if (gradesData.success) {
+                                        // 找到当前课程的成绩
+                                        const courseGrade = gradesData.data.find(g => g.id == courseId);
+                                        return {
+                                            student: student,
+                                            grades: courseGrade || {
+                                                usual_grade: 0,
+                                                midterm_grade: 0,
+                                                final_grade: 0
+                                            }
+                                        };
+                                    }
+                                    return { student: student, grades: { usual_grade: 0, midterm_grade: 0, final_grade: 0 } };
+                                })
+                        ))
+                            .then(studentsWithGrades => {
+                                displayStudentGrades(studentsWithGrades, course);
+                            })
+                            .catch(error => {
+                                console.error('获取学生成绩失败:', error);
+                                $('#gradesContainer').html('<p class="alert alert-danger">获取学生成绩失败</p>');
+                            });
+                    } else {
+                        $('#gradesContainer').html('<p class="alert alert-warning">没有学生选修此课程</p>');
                     }
                 })
                 .catch(error => {
-                    console.error('加载成绩失败:', error);
-                    alert('加载成绩失败: ' + error.message);
+                    console.error('获取课程学生失败:', error);
+                    $('#gradesContainer').html('<p class="alert alert-danger">获取学生信息失败</p>');
                 });
         }
 
-        // 显示成绩
-        function displayGrades(courses) {
-            const container = $('#courseGradesList');
+        // 显示学生成绩
+        function displayStudentGrades(studentsWithGrades, course) {
+            const container = $('#gradesContainer');
             container.empty();
 
-            courses.forEach(course => {
+            if (studentsWithGrades.length === 0) {
+                container.html('<p class="alert alert-warning">没有学生选修此课程</p>');
+                return;
+            }
+
+            // 创建成绩卡片
+            studentsWithGrades.forEach(item => {
+                const { student, grades } = item;
+
                 const card = $(`
-                    <div class="course-card" data-course-id="${course.id}">
-                        <h5>${course.name}</h5>
-                        <p>学分: ${course.credit}</p>
-                        <div class="row">
-                            <div class="col">
+                    <div class="grade-card" data-student-id="${student.student_id}" data-course-id="${course.id}">
+                        <h5>${student.name} (${student.student_id})</h5>
+                        <div class="row mt-3">
+                            <div class="col-md-4">
                                 <label>平时成绩 (${course.usual_score}%):</label>
                                 <input type="number" class="form-control grade-input usual-grade" 
-                                       value="${course.usual_grade || 0}" min="0" max="100">
+                                       value="${grades.usual_grade || 0}" min="0" max="100">
                             </div>
-                            <div class="col">
+                            <div class="col-md-4">
                                 <label>期中成绩 (${course.midterm_score}%):</label>
                                 <input type="number" class="form-control grade-input midterm-grade" 
-                                       value="${course.midterm_grade || 0}" min="0" max="100">
+                                       value="${grades.midterm_grade || 0}" min="0" max="100">
                             </div>
-                            <div class="col">
+                            <div class="col-md-4">
                                 <label>期末成绩 (${course.final_score}%):</label>
                                 <input type="number" class="form-control grade-input final-grade" 
-                                       value="${course.final_grade || 0}" min="0" max="100">
-                            </div>
-                            <div class="col">
-                                <label>总评:</label>
-                                <span class="total-grade">
-                                    ${calculateTotalGrade(course)}
-                                </span>
+                                       value="${grades.final_grade || 0}" min="0" max="100">
                             </div>
                         </div>
                     </div>
                 `);
 
-                // 添加成绩输入事件监听
-                card.find('input').on('input', function() {
-                    updateTotalGrade(card, course);
-                });
-
                 container.append(card);
             });
         }
 
-        // 计算单门课程总评
-        function calculateTotalGrade(course) {
-            const usual = (course.usual_grade || 0) * (course.usual_score / 100);
-            const midterm = (course.midterm_grade || 0) * (course.midterm_score / 100);
-            const final = (course.final_grade || 0) * (course.final_score / 100);
-            return (usual + midterm + final).toFixed(2);
-        }
-
-        // 更新总评显示
-        function updateTotalGrade(card, course) {
-            const usualGrade = parseFloat(card.find('.usual-grade').val()) || 0;
-            const midtermGrade = parseFloat(card.find('.midterm-grade').val()) || 0;
-            const finalGrade = parseFloat(card.find('.final-grade').val()) || 0;
-
-            const total = 
-                usualGrade * (course.usual_score / 100) +
-                midtermGrade * (course.midterm_score / 100) +
-                finalGrade * (course.final_score / 100);
-
-            card.find('.total-grade').text(total.toFixed(2));
-        }
-
-        // 计算学习统计
-        function calculateStats(courses) {
-            let totalCredits = 0;
-            let weightedScore = 0;
-            let weightedGPA = 0;
-
-            courses.forEach(course => {
-                const totalGrade = parseFloat(calculateTotalGrade(course));
-                const credit = parseFloat(course.credit);
-                totalCredits += credit;
-                weightedScore += totalGrade * credit;
-                weightedGPA += calculateGPA(totalGrade) * credit;
-            });
-
-            const averageScore = totalCredits ? (weightedScore / totalCredits).toFixed(2) : 0;
-            const gpa = totalCredits ? (weightedGPA / totalCredits).toFixed(2) : 0;
-
-            $('#totalCredits').text(totalCredits);
-            $('#averageScore').text(averageScore);
-            $('#gpa').text(gpa);
-        }
-
-        // 计算GPA
-        function calculateGPA(score) {
-            if (score >= 90) return 4.0;
-            if (score >= 85) return 3.7;
-            if (score >= 80) return 3.3;
-            if (score >= 75) return 3.0;
-            if (score >= 70) return 2.7;
-            if (score >= 65) return 2.3;
-            if (score >= 60) return 2.0;
-            return 0;
-        }
-
-        // 保存所有成绩
+        // 保存所有学生成绩
         function saveAllGrades() {
-            const studentId = $('#studentSelect').val();
-            if (!studentId) {
-                alert('请选择学生');
+            const courseId = $('#courseSelect').val();
+            if (!courseId) {
+                alert('请先选择课程');
                 return;
             }
 
-            const grades = [];
-            $('.course-card').each(function() {
-                const card = $(this);
-                const courseId = card.data('course-id');
-                grades.push({
-                    course_id: courseId,
+            const gradeCards = $('.grade-card');
+            if (gradeCards.length === 0) {
+                alert('没有学生成绩需要保存');
+                return;
+            }
+
+            // 收集所有成绩数据
+            const allGradesPromises = [];
+
+            gradeCards.each(function () {
+                const studentId = $(this).data('student-id');
+                const courseId = $(this).data('course-id');
+                const usualGrade = parseInt($(this).find('.usual-grade').val()) || 0;
+                const midtermGrade = parseInt($(this).find('.midterm-grade').val()) || 0;
+                const finalGrade = parseInt($(this).find('.final-grade').val()) || 0;
+
+                // 验证成绩
+                if (usualGrade < 0 || usualGrade > 100 ||
+                    midtermGrade < 0 || midtermGrade > 100 ||
+                    finalGrade < 0 || finalGrade > 100) {
+                    alert('成绩必须在0-100之间');
+                    return;
+                }
+
+                // 构建成绩数据
+                const gradeData = {
                     student_id: studentId,
-                    usual_grade: parseFloat(card.find('.usual-grade').val()) || 0,
-                    midterm_grade: parseFloat(card.find('.midterm-grade').val()) || 0,
-                    final_grade: parseFloat(card.find('.final-grade').val()) || 0
-                });
+                    grades: [{
+                        course_id: courseId,
+                        usual_grade: usualGrade,
+                        midterm_grade: midtermGrade,
+                        final_grade: finalGrade
+                    }]
+                };
+
+                // 保存单个学生的成绩
+                allGradesPromises.push(
+                    fetch('/api/grades', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify(gradeData)
+                    })
+                        .then(response => response.json())
+                );
             });
 
-            window.saveGrades(studentId, grades)
-                .then(response => {
-                    if (response && response.success) {
-                        alert('成绩保存成功');
-                        loadStudentGrades(studentId);  // 重新加载显示
+            // 等待所有成绩保存完成
+            Promise.all(allGradesPromises)
+                .then(results => {
+                    const failures = results.filter(r => !r.success);
+                    if (failures.length === 0) {
+                        alert('所有成绩保存成功');
+                    } else {
+                        alert(`有 ${failures.length} 名学生的成绩保存失败`);
                     }
                 })
                 .catch(error => {
-                    alert('保存成绩失败: ' + error.message);
+                    console.error('保存成绩失败:', error);
+                    alert('保存成绩失败');
                 });
-        }
-
-        // 清空成绩显示
-        function clearGradesDisplay() {
-            $('#courseGradesList').empty();
-            $('#totalCredits').text('0');
-            $('#averageScore').text('0');
-            $('#gpa').text('0');
         }
     </script>
 </body>
-</html> 
+
+</html>
