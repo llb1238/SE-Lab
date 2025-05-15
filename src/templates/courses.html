@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>课程管理</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -7,63 +8,80 @@
     <script src="/static/js/api.js"></script>
     <style>
         body {
-            background-image: url('/static/picture/courses.jpeg');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center;
-            background-attachment: fixed;
+            background-color: #f8f9fc;
+            font-family: 'Microsoft YaHei', sans-serif;
         }
+
         .action-buttons {
             margin-bottom: 20px;
             display: flex;
             gap: 10px;
         }
+
         .content-area {
             padding: 20px;
             margin-left: 200px;
         }
+
         .search-area {
             margin-bottom: 20px;
         }
+
         .form-group {
             margin-bottom: 15px;
         }
-        #addCourseForm, #viewCoursesArea, #deleteCourseArea, #modifyCourseArea {
+
+        #addCourseForm,
+        #viewCoursesArea,
+        #deleteCourseArea,
+        #modifyCourseArea {
             margin-top: 20px;
             padding: 20px;
             background-color: #f8f9fa;
             border-radius: 5px;
         }
+
         .table-responsive {
             margin-top: 20px;
         }
+
         .time-slots {
             display: flex;
             gap: 20px;
             margin-top: 10px;
         }
-        .weekday-slots, .time-slots {
+
+        .weekday-slots,
+        .time-slots {
             display: flex;
             flex-direction: column;
             gap: 5px;
         }
+
         .form-check {
             margin-bottom: 5px;
         }
+
         .time-slot-row {
             display: flex;
             gap: 10px;
             margin-bottom: 10px;
             align-items: center;
         }
-        .weekday-select, .time-select, .modify-weekday-select, .modify-time-select {
+
+        .weekday-select,
+        .time-select,
+        .modify-weekday-select,
+        .modify-time-select {
             flex: 1;
         }
+
         .remove-time-slot {
             width: auto;
         }
     </style>
 </head>
+
 <body>
     <div class="content-area">
         <div class="action-buttons">
@@ -320,20 +338,20 @@
                     method: 'DELETE',
                     credentials: 'include'
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert('课程删除成功');
-                        $('#deleteCourseSelect').val('');  // 清空选择
-                        refreshAllData();  // 刷新数据
-                    } else {
-                        throw new Error(data.message || '删除失败');
-                    }
-                })
-                .catch(error => {
-                    console.error('删除课程失败:', error);
-                    alert('删除失败: ' + (error.message || '未知错误'));
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('课程删除成功');
+                            $('#deleteCourseSelect').val('');  // 清空选择
+                            refreshAllData();  // 刷新数据
+                        } else {
+                            throw new Error(data.message || '删除失败');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('删除课程失败:', error);
+                        alert('删除失败: ' + (error.message || '未知错误'));
+                    });
             }
         }
 
@@ -368,36 +386,36 @@
         $('#addModifyTimeSlot').click(() => addTimeSlotRow('modifyTimeSlotContainer'));
 
         // 绑定删除时间段按钮事件
-        $(document).on('click', '.remove-time-slot', function() {
+        $(document).on('click', '.remove-time-slot', function () {
             $(this).closest('.time-slot-row').remove();
         });
 
         // 修改表单提交处理
-        $('#courseForm').submit(function(e) {
+        $('#courseForm').submit(function (e) {
             e.preventDefault();
-            
+
             // 获取所有时间段组合
             const timeSlots = [];
             const timeMap = new Map();  // 用于检查时间段重复
 
-            $('#timeSlotContainer .time-slot-row').each(function() {
+            $('#timeSlotContainer .time-slot-row').each(function () {
                 const weekday = $(this).find('.weekday-select').val();
                 const time = $(this).find('.time-select').val();
                 if (weekday && time) {
                     const timeSlot = `${weekday} ${time}`;
-                    
+
                     // 检查时间段是否重复
                     if (timeMap.has(timeSlot)) {
                         alert('错误：存在重复的时间段安排！');
                         e.preventDefault();
                         return false;
                     }
-                    
+
                     timeMap.set(timeSlot, true);
                     timeSlots.push(timeSlot);
                 }
             });
-            
+
             const formData = {
                 name: $('input[name="name"]').val(),
                 learn_time: $('select[name="learn_time"]').val(),
@@ -409,7 +427,7 @@
             };
 
             // 验证数据
-            if (!formData.name || !formData.credit || 
+            if (!formData.name || !formData.credit ||
                 isNaN(formData.usual_score) || isNaN(formData.midterm_score) || isNaN(formData.final_score)) {
                 alert('请填写所有必要字段，并确保成绩为数字');
                 return;
@@ -452,7 +470,7 @@
         });
 
         // 修改课程选择处理
-        $('#modifyCourseSelect').change(function() {
+        $('#modifyCourseSelect').change(function () {
             const courseId = $(this).val();
             if (courseId) {
                 getCourses()
@@ -511,7 +529,7 @@
         });
 
         // 修改提交修改表单的处理
-        $('#modifyCourseForm').submit(function(e) {
+        $('#modifyCourseForm').submit(function (e) {
             e.preventDefault();
             const courseId = $('#modifyCourseSelect').val();
             if (!courseId) {
@@ -521,7 +539,7 @@
 
             // 获取所有时间段组合
             const timeSlots = [];
-            $('#modifyTimeSlotContainer .time-slot-row').each(function() {
+            $('#modifyTimeSlotContainer .time-slot-row').each(function () {
                 const weekday = $(this).find('.modify-weekday-select').val();
                 const time = $(this).find('.modify-time-select').val();
                 if (weekday && time) {
@@ -540,7 +558,7 @@
             };
 
             // 验证数据
-            if (!formData.name || !formData.credit || 
+            if (!formData.name || !formData.credit ||
                 isNaN(formData.usual_score) || isNaN(formData.midterm_score) || isNaN(formData.final_score)) {
                 alert('请填写所有必要字段，并确保成绩为数字');
                 return;
@@ -575,14 +593,14 @@
         });
 
         // 页面加载时初始化数据
-        $(document).ready(function() {
+        $(document).ready(function () {
             showAddCourse();
             refreshAllData();  // 初始加载所有数据
             addTimeSlotRow('timeSlotContainer');
             addTimeSlotRow('modifyTimeSlotContainer');
 
             // 绑定删除按钮事件
-            $('#deleteCourseBtn').off('click').on('click', function() {
+            $('#deleteCourseBtn').off('click').on('click', function () {
                 deleteCourse();
             });
         });
@@ -618,4 +636,5 @@
         }
     </script>
 </body>
-</html> 
+
+</html>

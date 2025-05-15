@@ -8,13 +8,21 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="/static/js/api.js"></script>
     <style>
+        /* 添加基本样式确保页面美观 */
         body {
-            background-image: url('/static/picture/teachers.jpeg');
-            background-size: cover;
-            background-repeat: no-repeat;
-            background-position: center;
-            background-attachment: fixed;
+            background-color: #f8f9fc;
             font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        .content-area {
+            padding: 20px;
+            margin-left: 200px;
+        }
+
+        /* 标题颜色修改为蓝色 */
+        .content-area h2 {
+            color: #4e73df;
+            margin-bottom: 20px;
         }
 
         .action-buttons {
@@ -22,105 +30,6 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-        }
-
-        .action-buttons button {
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            border-radius: 6px;
-        }
-
-        .action-buttons button:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .content-area {
-            padding: 30px;
-            margin-left: 200px;
-        }
-
-        .search-area {
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        #registerTeacherForm,
-        #viewCoursesArea,
-        #scheduleCourseArea,
-        #modifyTeacherArea,
-        #deleteTeacherArea {
-            margin-top: 25px;
-            padding: 30px;
-            background-color: rgba(248, 249, 250, 0.9);
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-            animation: fadeIn 0.5s ease;
-        }
-
-        .form-control {
-            border-radius: 8px;
-            padding: 12px;
-            border: 1px solid #ced4da;
-            transition: all 0.3s ease;
-        }
-
-        .form-control:focus {
-            border-color: #80bdff;
-            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, .25);
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .table {
-            background-color: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .table thead th {
-            background-color: #f8f9fa;
-            border-bottom: 2px solid #dee2e6;
-        }
-
-        h3,
-        h4 {
-            color: #343a40;
-            margin-bottom: 20px;
-            font-weight: 600;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
-            display: inline-block;
-        }
-
-        select.form-control {
-            appearance: none;
-            padding-right: 30px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23343a40' d='M0 0l5 5 5-5z'/%3E%3C/svg%3E");
-            background-position: right 10px center;
-            background-repeat: no-repeat;
-        }
-
-        .hide-area {
-            animation: fadeOut 0.3s ease forwards;
-        }
-
-        .show-area {
-            animation: fadeIn 0.5s ease;
         }
 
         @keyframes fadeOut {
@@ -146,7 +55,7 @@
 
 <body>
     <div class="content-area">
-        <h2 class="mb-4 text-white">教师管理系统</h2>
+        <h2 class="mb-4">教师管理系统</h2>
 
         <div class="action-buttons">
             <button class="btn btn-primary" onclick="showRegisterTeacher()">注册教师</button>
