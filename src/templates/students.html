@@ -4,6 +4,13 @@
 <head>
     <title>学生管理</title>
     <style>
+        body {
+            background-image: url('/static/picture/students.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            background-attachment: fixed;
+        }
         .action-buttons {
             margin-bottom: 20px;
             display: flex;
@@ -581,20 +588,6 @@
             }
         }
 
-        // 加载报名课程列表
-        function loadCoursesForEnroll() {
-            window.getCourses()
-                .then(response => {
-                    if (response && response.success) {
-                        window.enrollCoursesList = response.data;  // 保存课程列表
-                        filterEnrollCourses('');  // 初始显示前25条记录
-                    }
-                })
-                .catch(error => {
-                    console.error('加载课程列表失败:', error);
-                });
-        }
-
         // 过滤报名课程选择框
         function filterEnrollCourses(searchText) {
             const select = $('#enrollCourseSelect');
@@ -695,6 +688,7 @@
             }
         }
 
+<<<<<<< HEAD
         // 过滤修改学生选择框
         function filterModifyStudents(searchText) {
             const select = $('#modifyStudentSelect');
@@ -722,6 +716,8 @@
             }
         }
 
+=======
+>>>>>>> 04ae5474e53e13cddb2d004e849b4ffdd504031f
         // 过滤删除学生选择框
         function filterDeleteStudents(searchText) {
             const select = $('#deleteStudentSelect');
@@ -761,6 +757,7 @@
                     console.error('加载学生列表失败:', error);
                 });
         }
+<<<<<<< HEAD
 
         // 过滤查看选课的学生选择框
         function filterViewStudents(searchText) {
@@ -819,6 +816,8 @@
                 select.append('<option value="" disabled>无匹配课程</option>');
             }
         }
+=======
+>>>>>>> 04ae5474e53e13cddb2d004e849b4ffdd504031f
     </script>
 </body>
 
