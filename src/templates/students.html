@@ -620,7 +620,82 @@
                 });
         }
 
+<<<<<<< HEAD
+        // 初始化所有学生选择框
+        function initStudentSelects() {
+            const modifySelect = $('#modifyStudentSelect');
+            const deleteSelect = $('#deleteStudentSelect');
+            modifySelect.empty().append('<option value="">选择学生</option>');
+            deleteSelect.empty().append('<option value="">选择学生</option>');
+
+            if (window.studentsList && window.studentsList.length > 0) {
+                window.studentsList.forEach(student => {
+                    const option = `<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`;
+                    modifySelect.append(option);
+                    deleteSelect.append(option);
+                });
+            }
+        }
+
+        // 过滤修改学生选择框
+        function filterModifyStudents(searchText) {
+            const select = $('#modifyStudentSelect');
+            select.empty();
+            select.append('<option value="">选学生</option>');
+
+            if (!window.studentsList || !searchText.trim()) {
+                return;
+            }
+
+            const searchLower = searchText.toLowerCase();
+            const filteredStudents = window.studentsList.filter(student =>
+                student.name.toLowerCase().includes(searchLower) ||
+                student.student_id.toLowerCase().includes(searchLower)
+            );
+
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+
+        // 过滤删除学生选择框
+        function filterDeleteStudents(searchText) {
+            const select = $('#deleteStudentSelect');
+            select.empty();
+            select.append('<option value="">选择学生</option>');
+
+            if (!window.studentsList || !searchText.trim()) {
+                return;
+            }
+
+            const filteredStudents = window.studentsList.filter(student =>
+                student.name.toLowerCase().includes(searchText.toLowerCase()) ||
+                student.student_id.toLowerCase().includes(searchText.toLowerCase())
+            );
+
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+
+        // 加载学生列表（用于查看选课）
+=======
         // 用于查看选课的学生加载函数
+>>>>>>> c71295100a06c833fe563a9e1d5ea5342fee0fe0
         function loadStudentsForView() {
             window.getStudents()
                 .then(response => {
@@ -633,6 +708,29 @@
                     console.error('加载学生列表失败:', error);
                 });
         }
+<<<<<<< HEAD
+        // 过滤查看选课的学生选择框
+        function filterViewStudents(searchText) {
+            const select = $('#studentSelect');
+            select.empty();
+            select.append('<option value="">选择学生</option>');
+
+            if (!window.studentsList) return;
+
+            const filteredStudents = filterDataWithLimit(window.studentsList, searchText);
+
+            if (filteredStudents.length > 0) {
+                filteredStudents.forEach(student => {
+                    select.append(`<option value="${student.student_id}">
+                        ${student.name} - ${student.student_id}
+                    </option>`);
+                });
+            } else {
+                select.append('<option value="" disabled>无匹配学生</option>');
+            }
+        }
+=======
+>>>>>>> c71295100a06c833fe563a9e1d5ea5342fee0fe0
 
         // 用于选课的学生加载函数
         function loadStudentsForEnroll() {
