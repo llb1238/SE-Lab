@@ -1,7 +1,7 @@
 var API_BASE_URL = `http://${window.location.host}/api`;
 
 // 课程相关API
-window.addCourse = async function(courseData) {
+window.addCourse = async function (courseData) {
     try {
         console.log('发送添加课程请求:', courseData);
         const response = await fetch(`${API_BASE_URL}/courses`, {
@@ -16,7 +16,7 @@ window.addCourse = async function(courseData) {
     }
 }
 
-window.updateCourse = async function(courseId, courseData) {
+window.updateCourse = async function (courseId, courseData) {
     try {
         const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
             method: 'PUT',
@@ -31,9 +31,9 @@ window.updateCourse = async function(courseId, courseData) {
 }
 
 // 学生相关API
-window.addStudent = async function(studentData) {
+window.addStudent = async function (studentData) {
     try {
-        console.log('发送添加生请求:', studentData);
+        console.log('发送添加学生请求:', studentData);
         const response = await fetch(`${API_BASE_URL}/students`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -46,7 +46,7 @@ window.addStudent = async function(studentData) {
     }
 }
 
-window.updateStudent = async function(studentId, studentData) {
+window.updateStudent = async function (studentId, studentData) {
     try {
         console.log('发送更新学生请求:', studentData);
         const response = await fetch(`${API_BASE_URL}/students/${studentId}`, {
@@ -63,7 +63,7 @@ window.updateStudent = async function(studentId, studentData) {
     }
 }
 
-window.deleteStudent = async function(studentId) {
+window.deleteStudent = async function (studentId) {
     try {
         console.log('发送删除学生请求:', studentId);
         const response = await fetch(`${API_BASE_URL}/students/${studentId}`, {
@@ -77,7 +77,7 @@ window.deleteStudent = async function(studentId) {
     }
 }
 
-window.addStudentCourse = async function(studentId, courseId) {
+window.addStudentCourse = async function (studentId, courseId) {
     try {
         console.log('学生选课:', { studentId, courseId });
         const response = await fetch(`${API_BASE_URL}/student-courses`, {
@@ -94,7 +94,24 @@ window.addStudentCourse = async function(studentId, courseId) {
     }
 }
 
-window.getStudentCourses = async function(studentId) {
+window.dropStudentCourse = async function (studentId, courseId) {
+    try {
+        console.log('学生退课:', { studentId, courseId });
+        const response = await fetch(`${API_BASE_URL}/student-courses`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ student_id: studentId, course_id: courseId })
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('退课失败', error);
+    }
+}
+
+window.getStudentCourses = async function (studentId) {
     try {
         console.log('获取学生课程:', studentId);
         const response = await fetch(`${API_BASE_URL}/students/${studentId}/courses`, {
@@ -106,8 +123,80 @@ window.getStudentCourses = async function(studentId) {
     }
 }
 
+// 获取当前学生的个人资料
+window.getStudentProfile = async function (studentId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/students/${studentId}/profile`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取学生个人资料失败', error);
+    }
+}
+
+// 更新学生个人资料
+window.updateStudentProfile = async function (studentId, profileData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/students/${studentId}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(profileData)
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('更新学生个人资料失败', error);
+    }
+}
+
+// 获取当前登录的学生ID
+window.getCurrentStudentId = async function () {
+    try {
+        // 获取当前用户信息
+        const userResponse = await fetch(`${API_BASE_URL}/current-user`, {
+            credentials: 'include'
+        });
+        const userData = await handleResponse(userResponse);
+
+        console.log('当前用户信息:', userData); // 添加调试信息
+
+        // 如果API直接返回了学生ID，直接使用
+        if (userData.success && userData.data.student_id) {
+            return userData.data.student_id;
+        }
+
+        // 否则，尝试通过用户名查找
+        if (userData.success && userData.data.username) {
+            const username = userData.data.username;
+
+            // 获取所有学生
+            const studentsResponse = await getStudents();
+
+            console.log('获取到的学生列表:', studentsResponse); // 添加调试信息
+
+            if (studentsResponse.success) {
+                // 查找用户名匹配的学生
+                const student = studentsResponse.data.find(s => s.name === username);
+                if (student) {
+                    console.log('找到匹配的学生:', student); // 添加调试信息
+                    return student.student_id;
+                } else {
+                    console.error('未找到匹配的学生记录'); // 添加调试信息
+                }
+            }
+        }
+        return null;
+    } catch (error) {
+        console.error('获取学生ID失败:', error);
+        return null;
+    }
+}
+
 // 师相关API
-window.addTeacher = async function(teacherData) {
+window.addTeacher = async function (teacherData) {
     try {
         console.log('发送添加教师请求:', teacherData);
         const response = await fetch(`${API_BASE_URL}/teachers`, {
@@ -122,7 +211,7 @@ window.addTeacher = async function(teacherData) {
     }
 }
 
-window.updateTeacher = async function(teacherId, teacherData) {
+window.updateTeacher = async function (teacherId, teacherData) {
     try {
         console.log('发送更新教师请求:', teacherData);
         const response = await fetch(`${API_BASE_URL}/teachers/${teacherId}`, {
@@ -148,7 +237,36 @@ window.updateTeacher = async function(teacherId, teacherData) {
     }
 }
 
-window.addTeacherCourse = async function(teacherId, courseId) {
+// 获取当前教师的个人资料
+window.getTeacherProfile = async function (teacherId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/teachers/${teacherId}/profile`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取教师个人资料失败', error);
+    }
+}
+
+// 更新教师个人资料
+window.updateTeacherProfile = async function (teacherId, profileData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/teachers/${teacherId}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(profileData)
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('更新教师个人资料失败', error);
+    }
+}
+
+window.addTeacherCourse = async function (teacherId, courseId) {
     try {
         console.log('安排教师课程:', { teacherId, courseId });
         const response = await fetch(`${API_BASE_URL}/teacher-courses`, {
@@ -165,7 +283,7 @@ window.addTeacherCourse = async function(teacherId, courseId) {
     }
 }
 
-window.getTeacherCourses = async function(teacherId) {
+window.getTeacherCourses = async function (teacherId) {
     try {
         console.log('获取教师课程:', teacherId);
         const response = await fetch(`${API_BASE_URL}/teachers/${teacherId}/courses`, {
@@ -177,8 +295,34 @@ window.getTeacherCourses = async function(teacherId) {
     }
 }
 
+// 获取当前教师的课程
+window.getCurrentTeacherCourses = async function () {
+    try {
+        console.log('获取当前教师的课程...');
+        const response = await fetch(`${API_BASE_URL}/teacher-courses/current`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取当前教师课程失败', error);
+    }
+}
+
+// 获取课程的学生
+window.getCourseStudents = async function (courseId) {
+    try {
+        console.log('获取课程学生:', courseId);
+        const response = await fetch(`${API_BASE_URL}/courses/${courseId}/students`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取课程学生失败', error);
+    }
+}
+
 // 获取数据的API
-window.getCourses = async function() {
+window.getCourses = async function () {
     try {
         console.log('正在获取课程列表...');
         const response = await fetch(`${API_BASE_URL}/courses`, {
@@ -186,18 +330,18 @@ window.getCourses = async function() {
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include'
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const result = await response.json();
         console.log('获取到的课程数据:', result);
-        
+
         if (!result.success) {
             throw new Error(result.message || '获取课程数据失败');
         }
-        
+
         return result;
     } catch (error) {
         console.error('获取课程列表失败:', error);
@@ -205,7 +349,7 @@ window.getCourses = async function() {
     }
 }
 
-window.getStudents = async function() {
+window.getStudents = async function () {
     try {
         console.log('正在获取学生列表...');
         const response = await fetch(`${API_BASE_URL}/students`, {
@@ -219,7 +363,7 @@ window.getStudents = async function() {
     }
 }
 
-window.getTeachers = async function() {
+window.getTeachers = async function () {
     try {
         console.log('正在获取教师列表...');
         const response = await fetch(`${API_BASE_URL}/teachers`, {
@@ -240,11 +384,11 @@ async function handleResponse(response) {
         if (contentType && contentType.includes('application/json')) {
             const result = await response.json();
             console.log('服务器响应:', result);
-            
+
             if (!response.ok) {
                 throw new Error(result.message || `HTTP error! status: ${response.status}`);
             }
-            
+
             return result;
         } else {
             const text = await response.text();
@@ -265,7 +409,7 @@ function handleError(message, error) {
 }
 
 // 添加课程选择器更新函数
-window.updateCourseSelectors = async function() {
+window.updateCourseSelectors = async function () {
     try {
         const response = await getCourses();
         if (response.success) {
@@ -292,7 +436,7 @@ window.updateCourseSelectors = async function() {
 }
 
 // 修改刷新数据的函数
-window.refreshAllData = async function() {
+window.refreshAllData = async function () {
     try {
         await Promise.all([
             updateTeacherSelectors(),
@@ -309,7 +453,7 @@ window.refreshAllData = async function() {
 }
 
 // 更新所有教师选择器
-window.updateTeacherSelectors = async function() {
+window.updateTeacherSelectors = async function () {
     try {
         const response = await getTeachers();
         if (response && response.success) {
@@ -342,7 +486,7 @@ window.updateTeacherSelectors = async function() {
 }
 
 // 更教师列表
-window.updateTeacherLists = async function() {
+window.updateTeacherLists = async function () {
     try {
         const response = await getTeachers();
         if (response && response.success) {
@@ -366,7 +510,7 @@ window.updateTeacherLists = async function() {
 }
 
 // 更新教师课程信息
-window.updateTeacherCourses = async function() {
+window.updateTeacherCourses = async function () {
     try {
         const teacherId = $('#teacherSelect').val();
         if (teacherId) {
@@ -396,7 +540,7 @@ window.updateTeacherCourses = async function() {
 }
 
 // 更新所有学生选择器
-window.updateStudentSelectors = async function() {
+window.updateStudentSelectors = async function () {
     try {
         const response = await getStudents();
         if (response.success) {
@@ -425,8 +569,66 @@ window.updateStudentSelectors = async function() {
     }
 }
 
+// 更新学生列表显示
+window.updateStudentLists = async function () {
+    try {
+        const response = await getStudents();
+        if (response && response.success) {
+            // 如果页面上有学生表格，更新它
+            if ($('#studentTableBody').length) {
+                let html = '';
+                response.data.forEach(student => {
+                    html += `
+                        <tr>
+                            <td>${student.name}</td>
+                            <td>${student.student_id}</td>
+                            <td>${student.enrollment_year || '未填写'}</td>
+                        </tr>
+                    `;
+                });
+                $('#studentTableBody').html(html);
+            }
+        }
+    } catch (error) {
+        console.error('更新学生列表失败:', error);
+    }
+}
+
+// 更新学生课程信息
+window.updateStudentCourses = async function () {
+    try {
+        const studentId = $('#studentSelect').val();
+        if (studentId) {
+            const response = await getStudentCourses(studentId);
+            if (response && response.success) {
+                // 如果页面上有学生课程表格，更新它
+                if ($('#studentCoursesTableBody').length) {
+                    let html = '';
+                    if (response.data && response.data.length > 0) {
+                        response.data.forEach(course => {
+                            html += `
+                                <tr>
+                                    <td>${course.name}</td>
+                                    <td>${course.learn_time}</td>
+                                    <td>${course.credit}</td>
+                                    <td>${course.times || ''}</td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        html = '<tr><td colspan="4">暂无课程数据</td></tr>';
+                    }
+                    $('#studentCoursesTableBody').html(html);
+                }
+            }
+        }
+    } catch (error) {
+        console.error('更新学生课程失败:', error);
+    }
+}
+
 // 成绩相关API
-window.getStudentGrades = async function(studentId) {
+window.getStudentGrades = async function (studentId) {
     try {
         console.log('获取学生成绩:', studentId);
         const response = await fetch(`${API_BASE_URL}/students/${studentId}/grades`, {
@@ -438,7 +640,7 @@ window.getStudentGrades = async function(studentId) {
     }
 }
 
-window.saveGrades = async function(studentId, grades) {
+window.saveGrades = async function (studentId, grades) {
     try {
         console.log('保存成绩:', { studentId, grades });
         const response = await fetch(`${API_BASE_URL}/grades`, {
@@ -456,7 +658,7 @@ window.saveGrades = async function(studentId, grades) {
 }
 
 // 作业相关API
-window.addAssignment = async function(courseId, assignmentData) {
+window.addAssignment = async function (courseId, assignmentData) {
     try {
         console.log('发送添加作业请求:', assignmentData);
         const response = await fetch(`${API_BASE_URL}/assignments`, {
@@ -476,7 +678,7 @@ window.addAssignment = async function(courseId, assignmentData) {
     }
 }
 
-window.getAssignments = async function(courseId) {
+window.getAssignments = async function (courseId) {
     try {
         console.log('获取作业列表:', courseId);
         const response = await fetch(`${API_BASE_URL}/courses/${courseId}/assignments`, {
@@ -491,7 +693,7 @@ window.getAssignments = async function(courseId) {
     }
 }
 
-window.deleteAssignment = async function(assignmentId) {
+window.deleteAssignment = async function (assignmentId) {
     try {
         console.log('发送删除作业请求:', assignmentId);
         const response = await fetch(`${API_BASE_URL}/assignments/${assignmentId}`, {
@@ -505,7 +707,7 @@ window.deleteAssignment = async function(assignmentId) {
     }
 }
 
-window.updateAssignment = async function(assignmentId, assignmentData) {
+window.updateAssignment = async function (assignmentId, assignmentData) {
     try {
         console.log('发送更新作业请求:', { assignmentId, assignmentData });
         const response = await fetch(`${API_BASE_URL}/assignments/${assignmentId}`, {
@@ -526,12 +728,12 @@ window.updateAssignment = async function(assignmentId, assignmentData) {
 // 添加一个通用的过滤函数
 function filterDataWithLimit(dataList, searchText, limit = 25) {
     if (!dataList) return [];
-    
+
     if (!searchText.trim()) {
         // 如果搜索文本为空，返回前25条记录
         return dataList.slice(0, limit);
     }
-    
+
     // 如果有搜索文本，进行精确匹配
     const searchLower = searchText.toLowerCase();
     return dataList.filter(item => {
@@ -539,11 +741,11 @@ function filterDataWithLimit(dataList, searchText, limit = 25) {
         if (item.name) {  // 适用于课程、教师、学生
             if (item.student_id) {  // 学生特有
                 return item.name.toLowerCase().includes(searchLower) ||
-                       item.student_id.toLowerCase().includes(searchLower);
+                    item.student_id.toLowerCase().includes(searchLower);
             }
             if (item.teacher_id) {  // 教师特有
                 return item.name.toLowerCase().includes(searchLower) ||
-                       item.teacher_id.toLowerCase().includes(searchLower);
+                    item.teacher_id.toLowerCase().includes(searchLower);
             }
             // 课程
             return item.name.toLowerCase().includes(searchLower);
@@ -551,4 +753,32 @@ function filterDataWithLimit(dataList, searchText, limit = 25) {
         return false;
     });
 }
-  
+
+// 获取当前管理员的个人资料
+window.getAdminProfile = async function (adminId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admins/${adminId}/profile`, {
+            credentials: 'include'
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('获取管理员个人资料失败', error);
+    }
+}
+
+// 更新管理员个人资料
+window.updateAdminProfile = async function (adminId, profileData) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/admins/${adminId}/profile`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(profileData)
+        });
+        return handleResponse(response);
+    } catch (error) {
+        handleError('更新管理员个人资料失败', error);
+    }
+}

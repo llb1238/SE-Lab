@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>我的课程</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="/static/css/animations.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="/static/js/api.js"></script>
+  <style>
+    .content-area {
+      padding: 20px;
+    }
+
+    .course-card {
+      margin-bottom: 20px;
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      background-color: #fff;
+    }
+
+    .course-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .search-area {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+
+    .course-time {
+      font-size: 0.9em;
+      color: #666;
+    }
+
+    .course-credit {
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    .no-courses {
+      text-align: center;
+      padding: 50px;
+      color: #666;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+    }
+
+    .enroll-btn {
+      margin-top: 10px;
+    }
+
+    .section-title {
+      margin-top: 30px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+      position: relative;
+    }
+
+    .section-title:after {
+      content: '';
+      position: absolute;
+      width: 100px;
+      height: 3px;
+      background-color: #007bff;
+      bottom: -1px;
+      left: 0;
+      transition: all 0.3s ease;
+    }
+
+    .section-title:hover:after {
+      width: 150px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="content-area fade-in"></div>
+  <h3 class="mb-4">我的课程</h3>
+
+  <div class="search-area">
+    <input type="text" class="form-control" id="courseSearch" placeholder="搜索课程...">
+  </div>
+
+  <div class="section-title">
+    <h4>已选课程</h4>
+  </div>
+
+  <div class="row" id="myCourses">
+    <!-- 已选课程卡片将在这里动态生成 -->
+    <div class="col-12 no-courses fade-in">加载中...</div>
+  </div>
+
+  <div class="section-title">
+    <h4>可选课程</h4>
+  </div>
+
+  <div class="row" id="availableCourses">
+    <!-- 可选课程卡片将在这里动态生成 -->
+    <div class="col-12 no-courses fade-in">加载中...</div>
+  </div>
+  </div>
+
+  <script>
+    $(document).ready(function () {
+      // 获取当前登录的学生ID，并加载课程数据
+      getCurrentStudentId().then(studentId => {
+        if (studentId) {
+          console.log('获取到学生ID:', studentId); // 添加调试信息
+          // 加载数据
+          refreshCourses(studentId);
+
+          // 绑定搜索事件
+          $('#courseSearch').on('input', function () {
+            const searchText = $(this).val().toLowerCase();
+            filterCourses(searchText);
+          });
+        } else {
+          console.error('无法获取学生ID'); // 添加调试信息
+          $('#myCourses').html('<div class="col-12 no-courses fade-in">无法获取学生信息，请重新登录</div>');
+          $('#availableCourses').html('<div class="col-12 no-courses fade-in">无法获取学生信息，请重新登录</div>');
+        }
+      });
+    });
+
+    // 修改获取当前登录的学生ID方法，直接从会话中获取
+    async function getCurrentStudentId() {
+      try {
+        // 获取当前用户信息
+        const response = await fetch('/api/current-user');
+        const data = await response.json();
+
+        console.log('当前用户信息:', data); // 添加日志
+
+        if (data.success && data.data.student_id) {
+          return data.data.student_id;
+        } else {
+          console.warn('会话中没有学生ID，尝试通过用户名匹配'); // 添加调试信息
+
+          // 如果会话中没有学生ID，尝试通过用户名查找学生
+          const username = data.data.username;
+
+          // 获取所有学生
+          const studentsResponse = await fetch('/api/students');
+          const studentsData = await studentsResponse.json();
+
+          console.log('获取到的学生列表:', studentsData); // 添加调试信息
+
+          if (studentsData.success) {
+            // 查找用户名匹配的学生
+            const student = studentsData.data.find(s => s.name === username);
+            if (student) {
+              console.log('通过用户名找到学生:', student); // 添加调试信息
+              return student.student_id;
+            } else {
+              console.error('没有找到匹配的学生记录'); // 添加调试信息
+            }
+          }
+        }
+        return null;
+      } catch (error) {
+        console.error('获取学生ID失败:', error);
+        return null;
+      }
+    }
+
+    // 刷新课程数据
+    async function refreshCourses(studentId) {
+      try {
+        // 获取所有课程
+        const allCoursesResponse = await fetch('/api/courses');
+        const allCoursesData = await allCoursesResponse.json();
+
+        // 获取学生已选课程
+        const myCoursesResponse = await fetch(`/api/students/${studentId}/courses`);
+        const myCoursesData = await myCoursesResponse.json();
+
+        if (allCoursesData.success && myCoursesData.success) {
+          // 保存课程数据
+          window.allCourses = allCoursesData.data;
+          window.myCourses = myCoursesData.data;
+
+          // 计算可选课程 (所有课程减去已选课程)
+          const myCoursesIds = myCoursesData.data.map(c => c.id);
+          window.availableCourses = allCoursesData.data.filter(c => !myCoursesIds.includes(c.id));
+
+          // 显示课程
+          displayMyCourses(myCoursesData.data, studentId);
+          displayAvailableCourses(window.availableCourses, studentId);
+        } else {
+          throw new Error('获取课程数据失败');
+        }
+      } catch (error) {
+        console.error('刷新课程失败:', error);
+        $('#myCourses').html('<div class="col-12 no-courses fade-in">加载课程失败，请重试</div>');
+        $('#availableCourses').html('<div class="col-12 no-courses fade-in">加载课程失败，请重试</div>');
+      }
+    }
+
+    // 显示我的课程，添加退课按钮
+    function displayMyCourses(courses, studentId) {
+      const container = $('#myCourses');
+      container.empty();
+
+      if (!courses || courses.length === 0) {
+        container.html('<div class="col-12 no-courses fade-in">您还没有选择任何课程</div>');
+        return;
+      }
+
+      courses.forEach((course, index) => {
+        const times = course.times ? course.times.split('|').join('<br>') : '暂无时间安排';
+
+        const card = $(`
+                    <div class="col-md-4 col-sm-6 mb-4">
+                        <div class="course-card card-ripple fade-in" style="animation-delay: ${index * 0.1}s">
+                            <h5>${course.name}</h5>
+                            <p>学习阶段: ${course.learn_time}</p>
+                            <p>学分: <span class="course-credit">${course.credit}</span></p>
+                            <p>上课时间:<br><span class="course-time">${times}</span></p>
+                            <p>考核方式: 平时(${course.usual_score}%), 期中(${course.midterm_score}%), 期末(${course.final_score}%)</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <div class="text-muted">已选课程</div>
+                                <button class="btn btn-danger btn-sm ripple-btn" 
+                                    onclick="dropCourse('${studentId}', ${course.id})">
+                                    退选课程
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+
+        container.append(card);
+      });
+    }
+
+    // 显示可选课程
+    function displayAvailableCourses(courses, studentId) {
+      const container = $('#availableCourses');
+      container.empty();
+
+      if (!courses || courses.length === 0) {
+        container.html('<div class="col-12 no-courses fade-in">已经选择了所有可选课程</div>');
+        return;
+      }
+
+      courses.forEach((course, index) => {
+        const times = course.times ? course.times.split('|').join('<br>') : '暂无时间安排';
+
+        const card = $(`
+                    <div class="col-md-4 col-sm-6 mb-4">
+                        <div class="course-card card-ripple fade-in" style="animation-delay: ${index * 0.1}s">
+                            <h5>${course.name}</h5>
+                            <p>学习阶段: ${course.learn_time}</p>
+                            <p>学分: <span class="course-credit">${course.credit}</span></p>
+                            <p>上课时间:<br><span class="course-time">${times}</span></p>
+                            <p>考核方式: 平时(${course.usual_score}%), 期中(${course.midterm_score}%), 期末(${course.final_score}%)</p>
+                            <button class="btn btn-primary btn-sm enroll-btn ripple-btn" 
+                                onclick="enrollCourse('${studentId}', ${course.id})">
+                                选择这门课程
+                            </button>
+                        </div>
+                    </div>
+                `);
+
+        container.append(card);
+      });
+    }
+
+    // 选课功能
+    async function enrollCourse(studentId, courseId) {
+      try {
+        const courseCard = $(event.target).closest('.course-card');
+
+        // 添加选课动画
+        courseCard.css({
+          'transform': 'scale(1.05)',
+          'box-shadow': '0 15px 30px rgba(0,0,0,0.2)'
+        });
+
+        setTimeout(async function () {
+          const response = await fetch('/api/student-courses', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+              student_id: studentId,
+              course_id: courseId
+            })
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            // 成功提示使用动画
+            const successMessage = $('<div class="alert alert-success fade-in" style="position:fixed; top:20px; right:20px;">选课成功！</div>');
+            $('body').append(successMessage);
+
+            setTimeout(function () {
+              successMessage.fadeOut(500, function () {
+                $(this).remove();
+              });
+            }, 2000);
+
+            // 重新加载课程
+            refreshCourses(studentId);
+          } else {
+            // 错误提示使用动画
+            courseCard.css({
+              'transform': '',
+              'box-shadow': ''
+            });
+
+            const errorMessage = $(`<div class="alert alert-danger fade-in" style="position:fixed; top:20px; right:20px;">${data.message}</div>`);
+            $('body').append(errorMessage);
+
+            setTimeout(function () {
+              errorMessage.fadeOut(500, function () {
+                $(this).remove();
+              });
+            }, 2000);
+          }
+        }, 300);
+      } catch (error) {
+        console.error('选课失败:', error);
+        alert('选课失败，请重试');
+      }
+    }
+
+    // 添加退课功能
+    async function dropCourse(studentId, courseId) {
+      if (confirm('确定要退选这门课程吗？')) {
+        try {
+          const courseCard = $(event.target).closest('.course-card');
+
+          // 添加退课动画
+          courseCard.css({
+            'transform': 'translateY(20px)',
+            'opacity': '0'
+          });
+
+          setTimeout(async function () {
+            const response = await fetch('/api/student-courses', {
+              method: 'DELETE',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include',
+              body: JSON.stringify({
+                student_id: studentId,
+                course_id: courseId
+              })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              // 成功提示使用动画
+              const successMessage = $('<div class="alert alert-success fade-in" style="position:fixed; top:20px; right:20px;">退课成功！</div>');
+              $('body').append(successMessage);
+
+              setTimeout(function () {
+                successMessage.fadeOut(500, function () {
+                  $(this).remove();
+                });
+              }, 2000);
+
+              // 重新加载课程
+              refreshCourses(studentId);
+            } else {
+              alert('退课失败: ' + data.message);
+            }
+          }, 300);
+        } catch (error) {
+          console.error('退课失败:', error);
+          alert('退课失败，请重试');
+        }
+      }
+    }
+
+    // 过滤课程
+    function filterCourses(searchText) {
+      if (window.myCourses) {
+        const filteredMyCourses = window.myCourses.filter(course =>
+          course.name.toLowerCase().includes(searchText)
+        );
+        const studentId = getCurrentStudentId();
+        displayMyCourses(filteredMyCourses, studentId);
+      }
+
+      if (window.availableCourses) {
+        const filteredAvailableCourses = window.availableCourses.filter(course =>
+          course.name.toLowerCase().includes(searchText)
+        );
+
+        const studentId = getCurrentStudentId();
+        displayAvailableCourses(filteredAvailableCourses, studentId);
+      }
+    }
+  </script>
+</body>
+
+</html>
