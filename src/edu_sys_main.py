@@ -336,6 +336,7 @@ def login():
 # 修改注册逻辑，处理学生记录时不指定enrollment_year
 @app.route('/register', methods=['POST'])
 def register():
+    conn = None  # 确保 finally 中可安全引用
     try:
         data = request.get_json()
         username = data.get('username')

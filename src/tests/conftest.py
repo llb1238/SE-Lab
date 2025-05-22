@@ -32,7 +32,10 @@ def reset_database():
 
     # 覆盖 DATABASE_PATH 并初始化
     mypy_config.DATABASE_PATH = db_path
-    mypy_init_db()
+
+    # 确保 edu_sys_main 模块也在测试库上初始化表
+    import edu_sys_main
+    edu_sys_main.init_db()
 
     yield  # 测试运行
 
