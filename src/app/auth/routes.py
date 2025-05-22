@@ -1,7 +1,7 @@
 from flask import request, jsonify, session, redirect, url_for
 import time
 from app import app
-from mypy.db_operations import get_db_connection
+from app.utils.db import get_db_connection
 
 # 登录路由
 @app.route('/login', methods=['POST'])

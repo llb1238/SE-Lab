@@ -1,4 +1,4 @@
-from mypy.db_operations import get_db_connection
+from app.utils.db import get_db_connection
 import os
 import sys
 import time

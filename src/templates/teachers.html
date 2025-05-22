@@ -229,12 +229,16 @@
     <script>
         // 刷新所有数据的函数
         function refreshAllData() {
-            loadTeachers();
-            loadCoursesForSchedule();
-            const selectedTeacherId = $('#teacherSelect').val();
-            if (selectedTeacherId) {
-                loadTeacherCourses(selectedTeacherId);
-            }
+            window.getTeachers()
+                .then(response => {
+                    if (response && response.success) {
+                        window.teachersList = response.data;
+                        // 可以在这里更新其他依赖教师列表的UI元素
+                    }
+                })
+                .catch(error => {
+                    console.error('刷新教师数据失败:', error);
+                });
         }
 
         // 加载教师列表
@@ -278,7 +282,7 @@
             });
         }
 
-        // 加载课程列表 (用于安排课程)
+        // 加载课程列表 (用于安排课程) - 修复此函数
         function loadCoursesForSchedule() {
             window.getCourses()
                 .then(response => {
@@ -287,9 +291,17 @@
                         select.empty();
                         select.append('<option value="">选择课程</option>');
 
+                        // 保存课程列表到全局变量，方便其他地方使用
+                        window.coursesList = response.data;
+
+                        // 修复：确保遍历课程列表并添加到下拉菜单
                         response.data.forEach(course => {
                             select.append(`<option value="${course.id}">${course.name}</option>`);
                         });
+
+                        console.log('课程列表已加载:', response.data.length, '条记录');
+                    } else {
+                        console.error('获取课程列表失败:', response.message || '未知错误');
                     }
                 })
                 .catch(error => {
@@ -297,33 +309,68 @@
                 });
         }
 
-        // 加载教师课程
-        function loadTeacherCourses(teacherId) {
-            window.getTeacherCourses(teacherId)
+        // 加载教师列表（用于安排课程）- 确保此函数也正确实现
+        function loadTeachersForSchedule() {
+            window.getTeachers()
                 .then(response => {
                     if (response && response.success) {
-                        let html = '';
-                        if (response.data.length > 0) {
-                            response.data.forEach(course => {
-                                html += `
-                                    <tr>
-                                        <td>${course.name}</td>
-                                        <td>${course.learn_time}</td>
-                                        <td>${course.credit}</td>
-                                        <td>${course.times || ''}</td>
-                                    </tr>
-                                `;
-                            });
-                        } else {
-                            html = '<tr><td colspan="4">暂无课程数据</td></tr>';
-                        }
-                        $('#teacherCoursesTableBody').html(html);
+                        const select = $('#scheduleTeacherSelect');
+                        select.empty();
+                        select.append('<option value="">选择教师</option>');
+
+                        // 保存教师列表到全局变量，方便其他地方使用
+                        window.teachersList = response.data;
+
+                        response.data.forEach(teacher => {
+                            select.append(`<option value="${teacher.teacher_id}">${teacher.name} (${teacher.teacher_id})</option>`);
+                        });
+
+                        console.log('教师列表已加载:', response.data.length, '条记录');
+                    } else {
+                        console.error('获取教师列表失败:', response.message || '未知错误');
+                    }
+                })
+                .catch(error => {
+                    console.error('加载教师列表失败:', error);
+                });
+        }
+
+        // 加载教师课程列表
+        function loadTeacherCourses(teacherId) {
+            fetch(`/api/teachers/${teacherId}/courses`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayTeacherCourses(data.data);
+                    } else {
+                        $('#teacherCoursesTableBody').html(`<tr><td colspan="4" class="text-center">${data.message || '加载失败'}</td></tr>`);
                     }
                 })
                 .catch(error => {
                     console.error('加载教师课程失败:', error);
-                    $('#teacherCoursesTableBody').html('<tr><td colspan="4">加载失败</td></tr>');
+                    $('#teacherCoursesTableBody').html('<tr><td colspan="4" class="text-center">加载课程失败</td></tr>');
                 });
+        }
+
+        // 显示教师课程
+        function displayTeacherCourses(courses) {
+            const tableBody = $('#teacherCoursesTableBody');
+            tableBody.empty();
+
+            if (!courses || courses.length === 0) {
+                tableBody.html('<tr><td colspan="4" class="text-center">该教师暂无课程</td></tr>');
+                return;
+            }
+
+            courses.forEach(course => {
+                const row = `<tr>
+                    <td>${course.name}</td>
+                    <td>${course.learn_time || ''}</td>
+                    <td>${course.credit || ''}</td>
+                    <td>${course.times || ''}</td>
+                </tr>`;
+                tableBody.append(row);
+            });
         }
 
         // 注册教师提交
@@ -386,17 +433,30 @@
                 return;
             }
 
-            window.addTeacherCourse(teacherId, courseId)
-                .then(response => {
-                    if (response.success) {
+            fetch('/api/teacher-courses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    teacher_id: teacherId,
+                    course_id: courseId
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
                         alert('课程安排成功');
                         $('#scheduleTeacherSelect').val('');
                         $('#scheduleCourseSelect').val('');
-                        refreshAllData();
+                    } else {
+                        alert('安排失败: ' + data.message);
                     }
                 })
                 .catch(error => {
-                    alert('安排课程失败: ' + error.message);
+                    console.error('安排课程失败:', error);
+                    alert('安排课程失败');
                 });
         }
 
@@ -454,11 +514,11 @@
         // 搜索教师
         $('#viewTeacherSearch').on('input', function () {
             const searchText = $(this).val().toLowerCase();
-            filterTeachers(searchText);
+            filterViewTeachers(searchText);
         });
 
         // 过滤教师列表
-        function filterTeachers(searchText) {
+        function filterViewTeachers(searchText) {
             const select = $('#teacherSelect');
             select.empty();
             select.append('<option value="">选择教师</option>');
@@ -471,9 +531,7 @@
             );
 
             filteredTeachers.forEach(teacher => {
-                select.append(`<option value="${teacher.teacher_id}">
-                    ${teacher.name} - ${teacher.teacher_id}
-                </option>`);
+                select.append(`<option value="${teacher.teacher_id}">${teacher.name} (${teacher.teacher_id})</option>`);
             });
         }
 
@@ -490,13 +548,7 @@
             hideAllAreas();
             setTimeout(function () {
                 $('#viewCoursesArea').show().addClass('show-area');
-                loadTeachers();
-
-                // 绑定搜索事件
-                $('#viewTeacherSearch').off('input').on('input', function () {
-                    const searchText = $(this).val().trim();
-                    filterTeachers(searchText);
-                });
+                loadTeachersForView();
             }, 300);
         }
 
@@ -504,8 +556,10 @@
             hideAllAreas();
             setTimeout(function () {
                 $('#scheduleCourseArea').show().addClass('show-area');
-                loadTeachers();
+                // 确保这两个函数被调用
+                loadTeachersForSchedule();
                 loadCoursesForSchedule();
+                console.log('显示安排课程区域，已触发数据加载');
             }, 300);
         }
 

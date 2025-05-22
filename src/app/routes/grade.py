@@ -1,7 +1,7 @@
 from flask import request, jsonify, session
 from app import app
 from app.utils.auth import login_required, role_required
-from mypy.db_operations import get_db_connection
+from app.utils.db import get_db_connection
 
 # 成绩相关路由
 @app.route('/api/students/<student_id>/grades', methods=['GET'])

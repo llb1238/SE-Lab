@@ -1,7 +1,7 @@
 from flask import request, jsonify, session
 from app import app
 from app.utils.auth import login_required, role_required
-from mypy.db_operations import get_db_connection, add_record, update_record, delete_record, get_records
+from app.utils.db import get_db_connection, add_record, update_record, delete_record, get_records
 
 # 获取管理员个人资料API
 @app.route('/api/admins/<admin_id>/profile', methods=['GET'])

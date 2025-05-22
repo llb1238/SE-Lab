@@ -6,9 +6,9 @@ import sqlite3
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
-from edu_sys_main import app as flask_app
-from mypy import config as mypy_config
-from mypy.init_db import init_db as mypy_init_db
+from run import app as flask_app
+from app import config as mypy_config
+from app.utils.db_init import init_db as mypy_init_db
 
 @pytest.fixture
 def app():
@@ -34,8 +34,8 @@ def reset_database():
     mypy_config.DATABASE_PATH = db_path
 
     # 确保 edu_sys_main 模块也在测试库上初始化表
-    import edu_sys_main
-    edu_sys_main.init_db()
+    import run
+    run.init_db()
 
     yield  # 测试运行
 
