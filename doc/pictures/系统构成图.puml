@@ -1,0 +1,46 @@
+@startuml 系统构成图
+' 设置中文字体
+skinparam defaultFontName "Microsoft YaHei"
+skinparam Shadowing false
+skinparam ArrowColor Black
+skinparam ComponentBorderColor Black
+skinparam ComponentBackgroundColor White
+skinparam packageFontColor Black
+skinparam packageBorderColor Black
+skinparam noteFontColor Black
+skinparam noteBorderColor Black
+skinparam noteBackgroundColor Khaki
+
+rectangle "教育管理系统" {
+
+  package "表现层" {
+    [用户界面] as UI
+  }
+
+  package "业务逻辑层" {
+    [应用接口 (API)] as API
+    [业务处理模块] as BL
+  }
+
+  package "数据访问层" {
+    [数据库操作] as DAO
+    database "数据库" as DB
+  }
+
+  ' 定义关系
+  UI --> API : 用户请求
+  API --> BL : 处理请求
+  BL --> DAO : 数据操作/查询请求
+  DAO --> DB : SQL 执行
+  DB --> DAO : 返回数据
+  DAO --> BL : 返回结果
+  BL --> API : 返回处理结果
+  API --> UI : 返回响应数据
+
+  ' 添加注释
+  note left of UI : 负责用户输入和输出展示
+  note right of BL : 实现业务规则和逻辑
+  note bottom of DAO : 负责与数据库交互
+}
+
+@enduml
