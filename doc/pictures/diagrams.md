@@ -9,14 +9,16 @@ graph TD
     B -->|录入| F[成绩]
     C -->|查看| F
 ```
+
+
 ```mermaid
 erDiagram
-    用户 ||--o{ 学生 : "拥有"
-    用户 ||--o{ 教师 : "拥有"
-    用户 ||--o{ 管理员 : "拥有"
-    学生 }o--o{ 课程 : "选修"
-    教师 }o--o{ 课程 : "教授"
-    课程 ||--o{ 作业 : "包含"
-    课程 ||--o{ 成绩 : "包含"
-    学生 ||--o{ 成绩 : "获得"
+    USER ||--o{ STUDENT : "拥有"
+    USER ||--o{ TEACHER : "拥有"
+    USER ||--o{ ADMIN : "拥有"
+    STUDENT }o--o{ COURSE : "选修"
+    TEACHER }o--o{ COURSE : "教授"
+    COURSE ||--o{ ASSIGNMENT : "包含"
+    COURSE ||--o{ GRADE : "包含"
+    STUDENT ||--o{ GRADE : "获得"
 ```
