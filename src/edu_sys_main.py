@@ -101,6 +101,27 @@ def init_db():
         print("正在向users表添加role列...")
         cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'teacher'")
     
+    # 创建students表（如果不存在）
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS students (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        student_id TEXT UNIQUE NOT NULL,
+        enrollment_year INTEGER NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    
+    # 创建teachers表（如果不存在）
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS teachers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        teacher_id TEXT UNIQUE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    
     # 创建admin表（如果不存在）
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS admins (
@@ -111,7 +132,76 @@ def init_db():
     )
     ''')
     
-    # 更新students表，确保enrollment_year可以为NULL
+    # 创建courses表（如果不存在）
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS courses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT UNIQUE NOT NULL,
+        learn_time TEXT,
+        credit REAL,
+        usual_score INTEGER,
+        midterm_score INTEGER,
+        final_score INTEGER,
+        times TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    
+    # 创建student_courses表（如果不存在）
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS student_courses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER,
+        course_id INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students (id),
+        FOREIGN KEY (course_id) REFERENCES courses (id),
+        UNIQUE (student_id, course_id)
+    )
+    ''')
+    
+    # 创建teacher_courses表（如果不存在）
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS teacher_courses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        teacher_id INTEGER,
+        course_id INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (teacher_id) REFERENCES teachers (id),
+        FOREIGN KEY (course_id) REFERENCES courses (id),
+        UNIQUE (teacher_id, course_id)
+    )
+    ''')
+    
+    # 创建grades表（如果不存在）
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS grades (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        student_id INTEGER,
+        course_id INTEGER,
+        usual_grade REAL,
+        midterm_grade REAL,
+        final_grade REAL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (student_id) REFERENCES students (id),
+        FOREIGN KEY (course_id) REFERENCES courses (id),
+        UNIQUE (student_id, course_id)
+    )
+    ''')
+    
+    # 创建assignments表（如果不存在）
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS assignments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        course_id INTEGER,
+        title TEXT NOT NULL,
+        content TEXT,
+        create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (course_id) REFERENCES courses (id)
+    )
+    ''')
+    
+    # 更新students表，确保enrollment_year可以为NULL（如果该表已存在）
     cursor.execute("PRAGMA table_info(students)")
     columns = cursor.fetchall()
     has_enrollment_year_constraint = False
@@ -129,19 +219,21 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             student_id TEXT UNIQUE NOT NULL,
-            enrollment_year INTEGER NULL
+            enrollment_year INTEGER NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
         # 复制数据
         cursor.execute('''
-        INSERT INTO students_temp (id, name, student_id, enrollment_year)
-        SELECT id, name, student_id, enrollment_year FROM students
+        INSERT INTO students_temp (id, name, student_id, enrollment_year, created_at)
+        SELECT id, name, student_id, enrollment_year, created_at FROM students
         ''')
         # 删除原表
         cursor.execute("DROP TABLE students")
         # 重命名临时表
         cursor.execute("ALTER TABLE students_temp RENAME TO students")
     
+    print("数据库初始化完成")
     conn.commit()
     conn.close()
 
