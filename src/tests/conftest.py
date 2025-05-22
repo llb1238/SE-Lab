@@ -7,6 +7,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import pytest
 from edu_sys_main import app as flask_app
+from mypy import config as mypy_config
+from mypy.init_db import init_db as mypy_init_db
 
 @pytest.fixture
 def app():
@@ -23,26 +25,16 @@ def client(app):
 
 @pytest.fixture(scope="function", autouse=True)
 def reset_database():
-    """每次测试后删除测试数据库文件并重新初始化"""
+    """每次测试前后，删除测试库并使用统一脚本初始化表结构"""
     db_path = os.path.join(os.path.dirname(__file__), '../database/edu_system.db')
     if os.path.exists(db_path):
         os.remove(db_path)
 
-    # 初始化数据库
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    # 覆盖 DATABASE_PATH 并初始化
+    mypy_config.DATABASE_PATH = db_path
+    mypy_init_db()
 
-    yield  # 测试运行在此处
+    yield  # 测试运行
 
     # 测试完成后删除数据库文件
     if os.path.exists(db_path):
