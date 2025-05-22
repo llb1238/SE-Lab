@@ -91,27 +91,28 @@ def login():
                     print(f"为用户 {username} 创建管理员记录成功，admin_id: {new_admin_id}")
                 except Exception as e:
                     print(f"创建管理员记录失败: {e}")
-        
+
         return jsonify({'success': True, 'message': '登录成功', 'role': role})
-    
+
     return jsonify({'success': False, 'message': '用户名、密码或身份选择错误'})
 
 # 注册路由
 @app.route('/register', methods=['POST'])
 def register():
+    conn = None  # 确保 finally 中可安全引用
     try:
         data = request.get_json()
         username = data.get('username')
         password = data.get('password')
         role = data.get('role')
         admin_code = data.get('admin_code')
-        
+
         if not username or not password or not role:
             return jsonify({
                 'success': False,
                 'message': '用户名、密码和身份不能为空'
             }), 400
-        
+
         # 验证管理员验证码
         if role == 'admin':
             if not admin_code:
@@ -119,93 +120,97 @@ def register():
                     'success': False,
                     'message': '请输入管理员验证码'
                 }), 400
-            
+
             if admin_code != '1':  # 设置验证码为1
                 return jsonify({
                     'success': False,
                     'message': '管理员验证码错误'
                 }), 400
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         # 检查用户名是否已存在于相同角色
-        cursor.execute('SELECT 1 FROM users WHERE username = ? AND role = ?', (username, role))
-        if cursor.fetchone():
+        cursor.execute('SELECT role FROM users WHERE username = ?', (username,))
+        row = cursor.fetchone()
+        if row:
+            existing_role = row[0]
             return jsonify({
                 'success': False,
-                'message': f'此用户名已被其他{role}用户使用'
+                'message': f'此用户名已被其他{existing_role}用户使用'
             }), 400
+
+        print("未检测到重复用户名，继续注册")
 
         # 添加新用户
         cursor.execute('INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-                      (username, password, role))
-        
+                    (username, password, role))
+
         # 获取新插入用户的ID
         user_id = cursor.lastrowid
-        
+
         # 根据角色在对应表中创建关联记录
         if role == 'student':
             # 创建学生ID，格式: S + 用户名 + 用户ID序号
             student_id = f"S{username}{user_id:04d}"
-            
+
             # 检查学生ID是否已存在
             cursor.execute('SELECT 1 FROM students WHERE student_id = ?', (student_id,))
             if cursor.fetchone():
                 student_id = f"S{username}{user_id}_{int(time.time())}"  # 确保唯一性
-                
+
             try:
                 # 在students表中创建对应记录 - 不指定enrollment_year
                 cursor.execute('''
-                    INSERT INTO students (name, student_id) 
+                    INSERT INTO students (name, student_id)
                     VALUES (?, ?)
                 ''', (username, student_id))
-                
+
                 print(f"为新注册用户 {username} 创建学生记录，student_id: {student_id}")
             except Exception as e:
                 # 如果上述插入失败，可能是字段约束问题，尝试使用默认年份
                 print(f"创建学生记录失败: {e}")
                 current_year = time.localtime().tm_year
                 cursor.execute('''
-                    INSERT INTO students (name, student_id, enrollment_year) 
+                    INSERT INTO students (name, student_id, enrollment_year)
                     VALUES (?, ?, ?)
                 ''', (username, student_id, current_year))
                 print(f"使用默认年份创建学生记录: {student_id}, 年份: {current_year}")
-            
+
         elif role == 'teacher':
             # 创建教师ID，格式: T + 用户名 + 用户ID序号
             teacher_id = f"T{username}{user_id:04d}"
-            
+
             # 检查教师ID是否已存在
             cursor.execute('SELECT 1 FROM teachers WHERE teacher_id = ?', (teacher_id,))
             if cursor.fetchone():
                 teacher_id = f"T{username}{user_id}_{int(time.time())}"  # 确保唯一性
-                
+
             # 在teachers表中创建对应记录
             cursor.execute('''
-                INSERT INTO teachers (name, teacher_id) 
+                INSERT INTO teachers (name, teacher_id)
                 VALUES (?, ?)
             ''', (username, teacher_id))
-            
+
             print(f"为新注册用户 {username} 创建教师记录，teacher_id: {teacher_id}")
-        
+
         elif role == 'admin':
             # 创建管理员ID，格式: A + 用户名 + 用户ID序号
             admin_id = f"A{username}{user_id:04d}"
-            
+
             # 检查管理员ID是否已存在
             cursor.execute('SELECT 1 FROM admins WHERE admin_id = ?', (admin_id,))
             if cursor.fetchone():
                 admin_id = f"A{username}{user_id}_{int(time.time())}"  # 确保唯一性
-                
+
             # 在admins表中创建对应记录
             cursor.execute('''
-                INSERT INTO admins (name, admin_id) 
+                INSERT INTO admins (name, admin_id)
                 VALUES (?, ?)
             ''', (username, admin_id))
-            
+
             print(f"为新注册用户 {username} 创建管理员记录，admin_id: {admin_id}")
-        
+
         conn.commit()
         return jsonify({
             'success': True,
