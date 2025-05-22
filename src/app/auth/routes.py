@@ -10,13 +10,13 @@ def login():
     username = data.get('username')
     password = data.get('password')
     role = data.get('role')
-    
+
     if not role:
         return jsonify({'success': False, 'message': '请选择身份'}), 400
-    
+
     conn = get_db_connection()
     cursor = conn.cursor()
-    
+
     # 验证用户凭据
     cursor.execute('SELECT * FROM users WHERE username = ? AND role = ?', (username, role))
     user = cursor.fetchone()
@@ -24,7 +24,7 @@ def login():
     if user and user['password'] == password:  # 在实际应用中应该使用密码哈希
         session['username'] = username
         session['role'] = role  # 保存用户角色到session
-        
+
         # 如果是学生，查找并保存学生ID
         if role == 'student':
             cursor.execute('SELECT student_id FROM students WHERE name = ?', (username,))
@@ -36,10 +36,10 @@ def login():
                 # 找不到对应的学生记录，自动创建一个
                 print(f"为用户 {username} 创建新的学生记录")
                 new_student_id = f"S{username}{user['id']:04d}"
-                
+
                 try:
                     cursor.execute('''
-                        INSERT INTO students (name, student_id) 
+                        INSERT INTO students (name, student_id)
                         VALUES (?, ?)
                     ''', (username, new_student_id))
                     conn.commit()
@@ -47,7 +47,7 @@ def login():
                     print(f"为用户 {username} 创建学生记录成功，student_id: {new_student_id}")
                 except Exception as e:
                     print(f"创建学生记录失败: {e}")
-        
+
         # 如果是教师，查找并保存教师ID
         elif role == 'teacher':
             cursor.execute('SELECT teacher_id FROM teachers WHERE name = ?', (username,))
@@ -58,7 +58,7 @@ def login():
             else:
                 # 找不到对应的教师记录，自动创建一个
                 new_teacher_id = f"T{username}{user['id']:04d}"
-                
+
                 try:
                     cursor.execute('''
                         INSERT INTO teachers (name, teacher_id) 
@@ -69,7 +69,7 @@ def login():
                     print(f"为用户 {username} 创建教师记录成功，teacher_id: {new_teacher_id}")
                 except Exception as e:
                     print(f"创建教师记录失败: {e}")
-            
+
         # 特殊处理管理员角色
         elif role == 'admin':
             cursor.execute('SELECT admin_id FROM admins WHERE name = ?', (username,))
@@ -80,10 +80,10 @@ def login():
             else:
                 # 找不到对应的管理员记录，自动创建一个
                 new_admin_id = f"A{username}{user['id']:04d}"
-                
+
                 try:
                     cursor.execute('''
-                        INSERT INTO admins (name, admin_id) 
+                        INSERT INTO admins (name, admin_id)
                         VALUES (?, ?)
                     ''', (username, new_admin_id))
                     conn.commit()
@@ -94,7 +94,7 @@ def login():
 
         return jsonify({'success': True, 'message': '登录成功', 'role': role})
 
-    return jsonify({'success': False, 'message': '用户名、密码或身份选择错误'})
+    return jsonify({'success': False, 'message': '用户名、密码或身份选择错误'}),400
 
 # 注册路由
 @app.route('/register', methods=['POST'])
