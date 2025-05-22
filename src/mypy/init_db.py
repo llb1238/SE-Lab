@@ -8,7 +8,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
-from py.config import DATABASE_PATH
+from mypy.config import DATABASE_PATH
 
 def init_db():
     """初始化数据库，创建必要的表并修复表结构"""
