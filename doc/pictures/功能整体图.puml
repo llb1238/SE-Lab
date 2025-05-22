@@ -1,0 +1,82 @@
+@startuml 功能整体图
+' 设置中文字体
+skinparam defaultFontName "Microsoft YaHei"
+skinparam Shadowing false
+skinparam ArrowColor Black
+skinparam ActorFontSize 14
+skinparam UsecaseFontSize 13
+
+' 定义角色
+actor 学生 as Student
+actor 教师 as Teacher
+actor 管理员 as Admin
+
+' 定义系统边界
+rectangle "教育管理系统" {
+    ' 学生相关用例组
+    package "学生功能" {
+        usecase "查看个人资料" as UC1
+        usecase "选课" as UC2
+        usecase "查看课程" as UC3
+        usecase "查看成绩" as UC4
+        usecase "提交作业" as UC5
+    }
+
+    ' 教师相关用例组
+    package "教师功能" {
+        usecase "管理课程" as UC6
+        usecase "发布作业" as UC7
+        usecase "录入成绩" as UC8
+        usecase "查看学生信息" as UC9
+    }
+
+    ' 管理员相关用例组
+    package "管理员功能" {
+        usecase "用户管理" as UC10
+        usecase "课程管理" as UC11
+        usecase "系统维护" as UC12
+    }
+}
+
+' 定义关系
+Student --> UC1
+Student --> UC2
+Student --> UC3
+Student --> UC4
+Student --> UC5
+
+Teacher --> UC6
+Teacher --> UC7
+Teacher --> UC8
+Teacher --> UC9
+
+Admin --> UC10
+Admin --> UC11
+Admin --> UC12
+
+' 添加注释
+note right of Student
+  学生可以：
+  - 查看个人资料
+  - 选课
+  - 查看课程
+  - 查看成绩
+  - 提交作业
+end note
+
+note right of Teacher
+  教师可以：
+  - 管理课程
+  - 发布作业
+  - 录入成绩
+  - 查看学生信息
+end note
+
+note right of Admin
+  管理员可以：
+  - 管理用户
+  - 管理课程
+  - 系统维护
+end note
+
+@enduml
