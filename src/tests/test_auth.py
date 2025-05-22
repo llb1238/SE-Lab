@@ -64,31 +64,105 @@ def test_register_and_login(client):
     })
     assert_json_response(response, expected_success=False, expected_status=400)
 
-#------------------------------------------------------------------
-# 测试登录功能
-
-    # 登录成功
-    response = client.post('/login', json={
-        'username': 'testuser',
-        'password': '123456'
+    # 管理员注册
+    # 注册管理员：成功
+    response = client.post('/register', json={
+        'username': 'adminuser',
+        'password': '123456',
+        'role': 'admin',
+        'admin_code': '1'
     })
-    assert response.status_code == 200
-    assert response.json['success'] == True
+    assert_json_response(response, expected_success=True, expected_status=200)
 
-    # 登录失败：用户名不存在
-    response = client.post('/login', json={
-        'username': 'nonexistent',
-        'password': '123456'
+    # 注册失败：缺少管理员验证码
+    response = client.post('/register', json={
+        'username': 'adminuser2',
+        'password': '123456',
+        'role': 'admin'
     })
-    assert response.status_code == 400
-    assert response.json['message'] == '用户名或密码错误'
-    assert response.json['success'] == False
+    assert_json_response(response, expected_success=False, expected_status=400)
 
-    # 登录失败：密码错误
-    response = client.post('/login', json={
-        'username': 'testuser',
-        'password': 'wrongpassword'
+    # 注册失败：管理员验证码错误
+    response = client.post('/register', json={
+        'username': 'adminuser2',
+        'password': '123456',
+        'role': 'admin',
+        'admin_code': 'wrong'
     })
-    assert response.status_code == 400
-    assert response.json['message'] == '用户名或密码错误'
-    assert response.json['success'] == False
+    assert_json_response(response, expected_success=False, expected_status=400)
+
+    # 注册失败：重复管理员用户名
+    response = client.post('/register', json={
+        'username': 'adminuser',
+        'password': 'newpass',
+        'role': 'admin',
+        'admin_code': '1'
+    })
+    assert_json_response(response, expected_success=False, expected_status=400)
+
+    response = client.post('/register', json={
+        'username': 'studentuser',
+        'password': 'newpass',
+        'role': 'admin',
+        'admin_code': '1'
+    })
+    assert_json_response(response, expected_success=False, expected_status=400)
+
+    response = client.post('/register', json={
+        'username': 'teacheruser',
+        'password': 'newpass',
+        'role': 'admin',
+        'admin_code': '1'
+    })
+    assert_json_response(response, expected_success=False, expected_status=400)
+
+    #------------------------------------------------------------------
+    # 测试登录功能
+    # 学生登录成功
+    response = client.post('/login', json={
+        'username': 'studentuser',
+        'password': '123456',
+        'role': 'student'
+    })
+    assert_json_response(response, expected_success=True, expected_status=200)
+
+    # 老师账号以学生身份登陆
+    response = client.post('/login', json={
+        'username': 'teacheruser',
+        'password': '123456',
+        'role': 'student'
+    })
+    assert_json_response(response, expected_success=False, expected_status=400)
+
+    # 学生登录失败：密码错误
+    response = client.post('/login', json={
+        'username': 'studentuser',
+        'password': 'wrong',
+        'role': 'student'
+    })
+    assert_json_response(response, expected_success=False, expected_status=400)
+
+    # 学生登录失败：用户名不存在
+    response = client.post('/login', json={
+        'username': 'nouser',
+        'password': '123456',
+        'role': 'student'
+    })
+    assert_json_response(response, expected_success=False, expected_status=400)
+
+    # 教师登录成功
+    response = client.post('/login', json={
+        'username': 'teacheruser',
+        'password': '123456',
+        'role': 'teacher'
+    })
+    assert_json_response(response, expected_success=True, expected_status=200)
+
+    # 管理员登录成功
+    response = client.post('/login', json={
+        'username': 'adminuser',
+        'password': '123456',
+        'role': 'admin'
+    })
+    assert_json_response(response, expected_success=True, expected_status=200)
+
