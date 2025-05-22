@@ -1,0 +1,43 @@
+@startuml wcy
+' 设置中文字体
+skinparam defaultFontName "Microsoft YaHei"
+skinparam Shadowing false
+skinparam ArrowColor Black
+skinparam ActorFontSize 14
+skinparam ParticipantFontSize 14
+skinparam SequenceMessageFontSize 13
+
+' 中文标题使用英文 note 包裹，防止解析出错
+note over 管理员,学生管理系统 : 学生信息管理业务流程
+
+participant 管理员
+participant 学生管理系统
+participant 后端服务
+participant 数据库_核心平台
+
+== 学生注册流程 ==
+
+管理员 -> 学生管理系统 : 进入学生管理页面\n点击“注册学生”
+学生管理系统 -> 学生管理系统 : 填写注册信息
+学生管理系统 -> 学生管理系统 : 表单校验通过？
+
+alt 表单通过
+  学生管理系统 -> 后端服务 : 调用 addStudent API
+  后端服务 -> 数据库_核心平台 : 写入学生数据
+  数据库_核心平台 --> 后端服务 : 写入成功
+  后端服务 --> 学生管理系统 : 返回成功状态
+else 表单不通过
+  学生管理系统 -> 学生管理系统 :  显示错误提示
+end
+
+== 报名课程流程 ==
+
+管理员 -> 学生管理系统 : 点击“报名课程”
+学生管理系统 -> 学生管理系统 : 选择学生与课程
+学生管理系统 -> 后端服务 : 调用 addStudentCourse API
+后端服务 -> 数据库_核心平台 : 写入报名记录
+数据库_核心平台 --> 后端服务 : 报名成功
+后端服务 --> 学生管理系统 : 返回成功提示
+学生管理系统 --> 管理员 : 显示“报名完成”
+
+@enduml
