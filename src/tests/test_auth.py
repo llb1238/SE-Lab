@@ -2,7 +2,8 @@ def test_register_and_login(client):
     # 注册用户
     response = client.post('/register', json={
         'username': 'testuser',
-        'password': '123456'
+        'password': '123456',
+        'role': 'student'
     })
     assert response.status_code == 200
     assert response.json['success'] == True
