@@ -14,6 +14,24 @@
             font-family: 'Microsoft YaHei', sans-serif;
         }
 
+        .content-area {
+            padding: 25px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h2,
+        h3,
+        h4 {
+            color: #343a40;
+            margin-bottom: 20px;
+            font-weight: 600;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+            display: inline-block;
+            /* 模仿教师管理系统，字体加粗并带下划线 */
+        }
+
         .action-buttons {
             margin-bottom: 20px;
             display: flex;
@@ -30,11 +48,6 @@
         .action-buttons button:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .content-area {
-            padding: 30px;
-            margin-left: 200px;
         }
 
         .search-area {
@@ -94,16 +107,6 @@
             border-bottom: 2px solid #dee2e6;
         }
 
-        h3,
-        h4 {
-            color: #343a40;
-            margin-bottom: 20px;
-            font-weight: 600;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 10px;
-            display: inline-block;
-        }
-
         select.form-control {
             appearance: none;
             padding-right: 30px;
@@ -143,7 +146,7 @@
 
 <body>
     <div class="content-area">
-        <h2 class="mb-4 text-white">学生管理系统</h2>
+        <h2 class="mb-4">学生管理系统</h2>
 
         <div class="action-buttons">
             <button class="btn btn-primary" onclick="showAddStudent()">注册学生</button>
