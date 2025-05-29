@@ -255,20 +255,13 @@
         if (result.success) {
           showSuccess();
 
-          // 如果教师ID已更改，刷新页面以使用新的ID
-          if (currentTeacherId !== updateData.teacher_id) {
-            setTimeout(() => {
-              window.location.reload();
-            }, 1500);
-          } else {
-            // 刷新显示的信息
-            $('#teacherName').text(updateData.name);
-            $('#teacherId').text(updateData.teacher_id);
+          // 刷新显示的信息
+          $('#teacherName').text(updateData.name);
+          $('#teacherId').text(updateData.teacher_id);
 
-            // 清空密码字段
-            $('#newPassword').val('');
-            $('#confirmPassword').val('');
-          }
+          // 清空密码字段
+          $('#newPassword').val('');
+          $('#confirmPassword').val('');
         } else {
           showError(result.message || '更新失败');
         }

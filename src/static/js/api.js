@@ -208,6 +208,20 @@ window.updateTeacher = async function (teacherId, teacherData) {
     }
 }
 
+window.deleteTeacher = async function (teacherId) {
+    try {
+        console.log('发送删除教师请求:', teacherId);
+        const response = await fetch(`${API_BASE_URL}/teachers/${teacherId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        return await handleResponse(response);
+    } catch (error) {
+        console.error('删除教师失败:', error);
+        throw error;
+    }
+}
+
 window.getTeacherProfile = async function (teacherId) {
     try {
         const response = await fetch(`${API_BASE_URL}/teachers/${teacherId}/profile`, {
