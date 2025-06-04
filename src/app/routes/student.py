@@ -27,6 +27,7 @@ def get_students():
 @login_required
 @role_required(['admin'])  # 只允许管理员添加学生
 def add_student():
+    conn = None
     try:
         data = request.get_json()
         print('接收到的学生数据:', data)
@@ -65,15 +66,22 @@ def add_student():
         # 检查是否有相同名称的用户账号，没有则自动创建
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT 1 FROM users WHERE username = ? AND role = ?', (data['name'], 'student'))
-        if not cursor.fetchone():
-            # 创建用户账号，使用默认密码
-            default_password = "123456"  # 在实际应用中应该生成随机密码并通知用户
-            cursor.execute(
-                'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-                (data['name'], default_password, 'student')
-            )
-            conn.commit()
+        try:
+            cursor.execute('SELECT 1 FROM users WHERE username = ? AND role = ?', (data['name'], 'student'))
+            if not cursor.fetchone():
+                # 创建用户账号，使用默认密码
+                default_password = "123456"  # 在实际应用中应该生成随机密码并通知用户
+                cursor.execute(
+                    'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
+                    (data['name'], default_password, 'student')
+                )
+                conn.commit()
+        except Exception as e:
+            print(f'创建用户账号时出错: {e}')
+            # 即使创建用户账号失败，学生记录已经创建成功，不回滚
+        finally:
+            if conn:
+                conn.close()
         
         return jsonify({
             'success': True,
@@ -83,6 +91,8 @@ def add_student():
         
     except Exception as e:
         print('添加学生失败:', e)
+        if conn:
+            conn.close()
         return jsonify({
             'success': False,
             'message': str(e)
@@ -154,8 +164,8 @@ def delete_student(student_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 获取学生的内部ID
-        cursor.execute('SELECT id FROM students WHERE student_id = ?', (student_id,))
+        # 获取学生的内部ID和姓名
+        cursor.execute('SELECT id, name FROM students WHERE student_id = ?', (student_id,))
         student = cursor.fetchone()
         if not student:
             return jsonify({
@@ -164,6 +174,7 @@ def delete_student(student_id):
             }), 404
 
         student_internal_id = student['id']
+        student_name = student['name']
 
         # 删除相关的选课记录
         cursor.execute('DELETE FROM student_courses WHERE student_id = ?', (student_internal_id,))
@@ -171,6 +182,8 @@ def delete_student(student_id):
         cursor.execute('DELETE FROM grades WHERE student_id = ?', (student_internal_id,))
         # 删除学生
         cursor.execute('DELETE FROM students WHERE id = ?', (student_internal_id,))
+        # 删除对应的用户账号
+        cursor.execute('DELETE FROM users WHERE username = ? AND role = ?', (student_name, 'student'))
 
         conn.commit()
         return jsonify({

@@ -157,7 +157,7 @@
         </div>
 
         <!-- 注册学生表单 -->
-        <div id="addStudentForm">
+        <div id="addStudentForm" style="display: none;">
             <h3>注册学生</h3>
             <form id="studentForm">
                 <div class="form-group">
@@ -231,7 +231,7 @@
                     <option value="">选择学生</option>
                 </select>
             </div>
-            <button type="button" class="btn btn-danger" id="deleteStudentBtn">删除</button>
+            <button type="button" class="btn btn-danger" onclick="deleteStudent()">删除</button>
         </div>
 
         <!-- 查看选课表单 -->
@@ -248,18 +248,21 @@
     </div>
 
     <script>
+        // 页面加载时初始化数据
         $(document).ready(function () {
             // 初始化数据
             loadAllData();
+            showAddStudent(); // 初始时显示注册学生区域
 
             // 绑定事件
             $('#enrollBtn').on('click', enrollStudentInCourse);
-            $('#deleteStudentBtn').on('click', deleteStudent);
+            // 移除这行，因为我们在HTML中使用onclick
+            // $('#deleteStudentBtn').on('click', deleteStudent);
 
             // 表单提交事件
-            $('#studentForm').on('submit', function (e) {
+            $('#studentForm').off('submit').on('submit', function (e) {
                 e.preventDefault();
-                addStudent();
+                submitStudentForm();
             });
 
             $('#modifyStudentForm').on('submit', function (e) {
@@ -432,7 +435,7 @@
         }
 
         // 添加学生
-        function addStudent() {
+        function submitStudentForm() {
             const formData = new FormData($('#studentForm')[0]);
             const studentData = {
                 name: formData.get('name'),
@@ -440,15 +443,22 @@
                 enrollment_year: formData.get('enrollment_year') || null
             };
 
+            // 添加调试日志
+            console.log('准备提交学生数据:', studentData);
+
             window.addStudent(studentData)
                 .then(response => {
-                    if (response.success) {
+                    console.log('添加学生响应:', response);
+                    if (response && response.success) {
                         alert('学生注册成功');
                         $('#studentForm')[0].reset();
                         loadStudents();
+                    } else {
+                        alert('注册失败: ' + (response ? response.message : '未知错误'));
                     }
                 })
                 .catch(error => {
+                    console.error('添加学生失败:', error);
                     alert('注册失败: ' + error.message);
                 });
         }
@@ -491,15 +501,26 @@
             }
 
             if (confirm('确定要删除这个学生吗？删除后将无法恢复。')) {
-                window.deleteStudent(studentId)
-                    .then(response => {
-                        if (response.success) {
+                console.log('准备删除学生:', studentId); // 添加调试日志
+
+                // 直接使用fetch调用，仿照教师删除的方式
+                fetch(`/api/students/${studentId}`, {
+                    method: 'DELETE',
+                    credentials: 'include'
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log('删除学生响应:', data); // 添加调试日志
+                        if (data.success) {
                             alert('学生删除成功');
                             $('#deleteStudentSelect').val('');
                             loadStudents();
+                        } else {
+                            alert('删除失败: ' + data.message);
                         }
                     })
                     .catch(error => {
+                        console.error('删除学生失败:', error);
                         alert('删除失败: ' + error.message);
                     });
             }
@@ -544,34 +565,59 @@
             $('#studentCoursesTable').html(html);
         }
 
-        // 显示不同的表单
+        // 区域切换动画与刷新
+        function hideAllAreas() {
+            $('#addStudentForm, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea, #viewCoursesArea')
+                .addClass('hide-area');
+            setTimeout(function () {
+                $('#addStudentForm, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea, #viewCoursesArea')
+                    .hide().removeClass('hide-area show-area');
+            }, 300);
+        }
+
         function showAddStudent() {
-            $('#addStudentForm').show();
-            $('#enrollCourseArea, #modifyStudentArea, #deleteStudentArea, #viewCoursesArea').hide();
+            hideAllAreas();
+            setTimeout(function () {
+                $('#addStudentForm').show().addClass('show-area');
+                loadAllData();
+                // 只绑定一次，防止重复
+                $('#studentForm').off('submit').on('submit', function (e) {
+                    e.preventDefault();
+                    submitStudentForm();
+                });
+            }, 300);
         }
 
         function showEnrollCourse() {
-            $('#enrollCourseArea').show();
-            $('#addStudentForm, #modifyStudentArea, #deleteStudentArea, #viewCoursesArea').hide();
-            loadAllData();
+            hideAllAreas();
+            setTimeout(function () {
+                $('#enrollCourseArea').show().addClass('show-area');
+                loadAllData();
+            }, 300);
         }
 
         function showModifyStudent() {
-            $('#modifyStudentArea').show();
-            $('#addStudentForm, #enrollCourseArea, #deleteStudentArea, #viewCoursesArea').hide();
-            loadAllData();
+            hideAllAreas();
+            setTimeout(function () {
+                $('#modifyStudentArea').show().addClass('show-area');
+                loadAllData();
+            }, 300);
         }
 
         function showDeleteStudent() {
-            $('#deleteStudentArea').show();
-            $('#addStudentForm, #enrollCourseArea, #modifyStudentArea, #viewCoursesArea').hide();
-            loadAllData();
+            hideAllAreas();
+            setTimeout(function () {
+                $('#deleteStudentArea').show().addClass('show-area');
+                loadAllData();
+            }, 300);
         }
 
         function showViewCourses() {
-            $('#viewCoursesArea').show();
-            $('#addStudentForm, #enrollCourseArea, #modifyStudentArea, #deleteStudentArea').hide();
-            loadAllData();
+            hideAllAreas();
+            setTimeout(function () {
+                $('#viewCoursesArea').show().addClass('show-area');
+                loadAllData();
+            }, 300);
         }
     </script>
 </body>

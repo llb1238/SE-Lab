@@ -140,8 +140,8 @@ def delete_teacher(teacher_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 获取教师的内部ID
-        cursor.execute('SELECT id FROM teachers WHERE teacher_id = ?', (teacher_id,))
+        # 获取教师的内部ID和姓名
+        cursor.execute('SELECT id, name FROM teachers WHERE teacher_id = ?', (teacher_id,))
         teacher = cursor.fetchone()
         if not teacher:
             return jsonify({
@@ -150,10 +150,13 @@ def delete_teacher(teacher_id):
             }), 404
             
         teacher_internal_id = teacher['id']
+        teacher_name = teacher['name']
         
         # 删除相关记录
         cursor.execute('DELETE FROM teacher_courses WHERE teacher_id = ?', (teacher_internal_id,))
         cursor.execute('DELETE FROM teachers WHERE id = ?', (teacher_internal_id,))
+        # 删除对应的用户账号
+        cursor.execute('DELETE FROM users WHERE username = ? AND role = ?', (teacher_name, 'teacher'))
         
         conn.commit()
         return jsonify({

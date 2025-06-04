@@ -107,7 +107,13 @@ window.deleteStudent = async function (studentId) {
             method: 'DELETE',
             credentials: 'include'
         });
-        return await handleResponse(response);
+
+        console.log('删除学生API响应状态:', response.status);
+
+        const result = await handleResponse(response);
+        console.log('删除学生API响应数据:', result);
+
+        return result;
     } catch (error) {
         console.error('删除学生失败:', error);
         throw error;
