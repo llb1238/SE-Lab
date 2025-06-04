@@ -140,6 +140,11 @@
                     <input type="text" class="form-control" name="name" required>
                 </div>
                 <div class="form-group">
+                    <label class="form-label">用户名:</label>
+                    <input type="text" class="form-control" name="username" required>
+                    <small class="form-text text-muted">用户名将用于登录系统，必须唯一</small>
+                </div>
+                <div class="form-group">
                     <label class="form-label">教师职工号:</label>
                     <input type="text" class="form-control" name="teacher_id" required>
                 </div>
@@ -379,6 +384,7 @@
 
             const formData = {
                 name: $('input[name="name"]').val(),
+                username: $('input[name="username"]').val(),
                 teacher_id: $('input[name="teacher_id"]').val()
             };
 

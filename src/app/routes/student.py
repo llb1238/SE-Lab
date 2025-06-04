@@ -33,13 +33,23 @@ def add_student():
         print('接收到的学生数据:', data)
         
         # 验证数据
-        required_fields = ['name', 'student_id']
+        required_fields = ['name', 'student_id', 'username']
         for field in required_fields:
             if field not in data:
                 return jsonify({
                     'success': False,
                     'message': f'缺少必要字段: {field}'
                 }), 400
+
+        # 检查学生ID是否已存在
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT 1 FROM students WHERE student_id = ?', (data['student_id'],))
+        if cursor.fetchone():
+            return jsonify({
+                'success': False,
+                'message': f'学生ID {data["student_id"]} 已存在'
+            }), 400
 
         # 添加记录 - 使用name和student_id，可选enrollment_year
         student_data = {
@@ -63,25 +73,21 @@ def add_student():
             else:
                 raise
         
-        # 检查是否有相同名称的用户账号，没有则自动创建
-        conn = get_db_connection()
-        cursor = conn.cursor()
+        # 检查是否有相同用户名的用户账号，没有则自动创建
         try:
-            cursor.execute('SELECT 1 FROM users WHERE username = ? AND role = ?', (data['name'], 'student'))
+            # 使用username而不是name来检查用户是否存在
+            cursor.execute('SELECT 1 FROM users WHERE username = ? AND role = ?', (data['username'], 'student'))
             if not cursor.fetchone():
                 # 创建用户账号，使用默认密码
                 default_password = "123456"  # 在实际应用中应该生成随机密码并通知用户
                 cursor.execute(
                     'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-                    (data['name'], default_password, 'student')
+                    (data['username'], default_password, 'student')
                 )
                 conn.commit()
         except Exception as e:
             print(f'创建用户账号时出错: {e}')
             # 即使创建用户账号失败，学生记录已经创建成功，不回滚
-        finally:
-            if conn:
-                conn.close()
         
         return jsonify({
             'success': True,
@@ -97,6 +103,9 @@ def add_student():
             'success': False,
             'message': str(e)
         }), 500
+    finally:
+        if conn:
+            conn.close()
 
 @app.route('/api/students/<student_id>', methods=['PUT'])
 @login_required

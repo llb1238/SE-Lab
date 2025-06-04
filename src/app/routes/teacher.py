@@ -32,7 +32,7 @@ def add_teacher():
         print('接收到的教师数据:', data)
         
         # 验证数据
-        required_fields = ['name', 'teacher_id']
+        required_fields = ['name', 'teacher_id', 'username']
         for field in required_fields:
             if field not in data:
                 return jsonify({
@@ -48,16 +48,16 @@ def add_teacher():
         
         new_id = add_record('teachers', teacher_data)
         
-        # 检查是否有相同名称的用户账号，没有则自动创建
+        # 检查是否有相同用户名的用户账号，没有则自动创建
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute('SELECT 1 FROM users WHERE username = ? AND role = ?', (data['name'], 'teacher'))
+        cursor.execute('SELECT 1 FROM users WHERE username = ? AND role = ?', (data['username'], 'teacher'))
         if not cursor.fetchone():
             # 创建用户账号，使用默认密码
             default_password = "123456"  # 在实际应用中应该生成随机密码并通知用户
             cursor.execute(
                 'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
-                (data['name'], default_password, 'teacher')
+                (data['username'], default_password, 'teacher')
             )
             conn.commit()
         
