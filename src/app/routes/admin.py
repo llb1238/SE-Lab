@@ -7,6 +7,7 @@ from app.utils.db import get_db_connection, add_record, update_record, delete_re
 @app.route('/api/admins/<admin_id>/profile', methods=['GET'])
 @login_required
 def get_admin_profile(admin_id):
+    conn = None
     # 检查权限：只能查看自己的资料
     if session.get('role') == 'admin' and session.get('admin_id') != admin_id:
         return jsonify({
@@ -40,7 +41,8 @@ def get_admin_profile(admin_id):
             'message': str(e)
         }), 500
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 # 更新管理员个人资料API
 @app.route('/api/admins/<admin_id>/profile', methods=['PUT'])
@@ -52,7 +54,8 @@ def update_admin_profile(admin_id):
             'success': False,
             'message': '您只能修改自己的个人资料'
         }), 403
-        
+
+    conn = None
     try:
         data = request.get_json()
         conn = get_db_connection()
@@ -80,7 +83,7 @@ def update_admin_profile(admin_id):
                 
         # 更新管理员信息
         cursor.execute('''
-            UPDATE admins 
+            UPDATE admins
             SET name = ?, admin_id = ?
             WHERE admin_id = ?
         ''', (data['name'], data['admin_id'], admin_id))
