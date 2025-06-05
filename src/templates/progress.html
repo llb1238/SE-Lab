@@ -291,6 +291,32 @@
                 return;
             }
 
+            // 先验证所有成绩是否合法
+            let allGradesValid = true;
+            let invalidStudent = null;
+
+            gradeCards.each(function () {
+                const studentName = $(this).find('h5').text();
+                const usualGrade = parseInt($(this).find('.usual-grade').val()) || 0;
+                const midtermGrade = parseInt($(this).find('.midterm-grade').val()) || 0;
+                const finalGrade = parseInt($(this).find('.final-grade').val()) || 0;
+
+                // 验证成绩
+                if (usualGrade < 0 || usualGrade > 100 ||
+                    midtermGrade < 0 || midtermGrade > 100 ||
+                    finalGrade < 0 || finalGrade > 100) {
+                    allGradesValid = false;
+                    invalidStudent = studentName;
+                    return false; // 跳出each循环
+                }
+            });
+
+            // 如果有无效成绩，显示警告并终止保存过程
+            if (!allGradesValid) {
+                alert(`${invalidStudent} 的成绩必须在0-100之间`);
+                return;
+            }
+
             // 收集所有成绩数据
             const allGradesPromises = [];
 
@@ -300,14 +326,6 @@
                 const usualGrade = parseInt($(this).find('.usual-grade').val()) || 0;
                 const midtermGrade = parseInt($(this).find('.midterm-grade').val()) || 0;
                 const finalGrade = parseInt($(this).find('.final-grade').val()) || 0;
-
-                // 验证成绩
-                if (usualGrade < 0 || usualGrade > 100 ||
-                    midtermGrade < 0 || midtermGrade > 100 ||
-                    finalGrade < 0 || finalGrade > 100) {
-                    alert('成绩必须在0-100之间');
-                    return;
-                }
 
                 // 构建成绩数据
                 const gradeData = {
