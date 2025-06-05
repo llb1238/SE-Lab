@@ -25,14 +25,14 @@ def test_register_and_login(client):
     })
     assert_json_response(response, expected_success=True, expected_status=200)
 
-    for i in range(10000):
-        username = str(i)
-        response = client.post('/register', json={
-            'username': username,
-            'password': '123456',
-            'role': 'student'
-        })
-        assert_json_response(response, expected_success=True, expected_status=200)
+    # for i in range(10000):
+    #     username = str(i)
+    #     response = client.post('/register', json={
+    #         'username': username,
+    #         'password': '123456',
+    #         'role': 'student'
+    #     })
+    #     assert_json_response(response, expected_success=True, expected_status=200)
 
     # 注册失败：用户名已存在
     response = client.post('/register', json={

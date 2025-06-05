@@ -25,17 +25,14 @@ def client(app):
 
 @pytest.fixture(scope="function", autouse=True)
 def reset_database():
-    """每次测试前后，删除测试库并使用统一脚本初始化表结构"""
+    """每次测试前后，删除测试库并使用统一脚本初始化表结构并插入测试数据"""
     db_path = os.path.join(os.path.dirname(__file__), '../database/edu_system.db')
     if os.path.exists(db_path):
         os.remove(db_path)
 
-    # 覆盖 DATABASE_PATH 并初始化
+    # 覆盖 DATABASE_PATH 并初始化（带测试数据）
     mypy_config.DATABASE_PATH = db_path
-
-    # 确保 edu_sys_main 模块也在测试库上初始化表
-    import run
-    run.init_db()
+    mypy_init_db(insert_test_data=True)
 
     yield  # 测试运行
 
