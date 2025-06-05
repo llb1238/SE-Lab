@@ -20,13 +20,13 @@ def get_student_grades(student_id):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # 获取学生选择的所有课程及其成绩
+        # 修改SQL查询，确保只返回特定学生的成绩
         cursor.execute('''
             SELECT c.*, g.usual_grade, g.midterm_grade, g.final_grade
             FROM courses c
-            LEFT JOIN grades g ON c.id = g.course_id
             JOIN student_courses sc ON c.id = sc.course_id
             JOIN students s ON sc.student_id = s.id
+            LEFT JOIN grades g ON c.id = g.course_id AND g.student_id = s.id
             WHERE s.student_id = ?
         ''', (student_id,))
         
