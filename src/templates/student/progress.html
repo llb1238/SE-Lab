@@ -286,15 +286,14 @@
         const userData = await userResponse.json();
 
         if (userData.success) {
-          const username = userData.data.username;
-
-          const studentsResponse = await window.getStudents();
-          if (studentsResponse.success) {
-            const student = studentsResponse.data.find(s => s.name === username);
-            if (student) {
-              return student.student_id;
-            }
+          // 直接使用会话中的学生ID，而不是通过用户名去查找所有学生
+          if (userData.data.student_id) {
+            return userData.data.student_id;
           }
+
+          // 如果会话中没有学生ID，则提示错误
+          console.error('当前用户不是学生或未关联学生ID');
+          return null;
         }
         return null;
       } catch (error) {
@@ -306,6 +305,7 @@
     // 加载学生成绩
     async function loadStudentGrades(studentId) {
       try {
+        // 确保只请求当前学生自己的成绩
         const response = await window.getStudentGrades(studentId);
 
         if (response.success) {
@@ -315,8 +315,6 @@
 
           // 成绩分布图表
           renderGradeDistributionChart(response.data);
-
-          // 移除学期平均分趋势图表的渲染调用
         } else {
           alert('获取成绩失败: ' + response.message);
         }
