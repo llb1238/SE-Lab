@@ -33,7 +33,7 @@ def add_student():
         print('接收到的学生数据:', data)
         
         # 验证数据
-        required_fields = ['name', 'student_id', 'username']
+        required_fields = ['username', 'student_id']
         for field in required_fields:
             if field not in data:
                 return jsonify({
@@ -51,9 +51,9 @@ def add_student():
                 'message': f'学生ID {data["student_id"]} 已存在'
             }), 400
 
-        # 添加记录 - 使用name和student_id，可选enrollment_year
+        # 添加记录 - 使用username和student_id，可选enrollment_year
         student_data = {
-            'name': data['name'],
+            'username': data['username'],
             'student_id': data['student_id']
         }
         
@@ -73,32 +73,48 @@ def add_student():
             else:
                 raise
         
+        # 设置固定的默认密码
+        default_password = "123456"
+        
         # 检查是否有相同用户名的用户账号，没有则自动创建
         try:
-            # 使用username而不是name来检查用户是否存在
             cursor.execute('SELECT 1 FROM users WHERE username = ? AND role = ?', (data['username'], 'student'))
             if not cursor.fetchone():
                 # 创建用户账号，使用默认密码
-                default_password = "123456"  # 在实际应用中应该生成随机密码并通知用户
                 cursor.execute(
                     'INSERT INTO users (username, password, role) VALUES (?, ?, ?)',
                     (data['username'], default_password, 'student')
                 )
                 conn.commit()
+            else:
+                # 如果用户已存在，确保它是学生角色并更新密码
+                cursor.execute(
+                    'UPDATE users SET password = ? WHERE username = ? AND role = ?',
+                    (default_password, data['username'], 'student')
+                )
+                conn.commit()
         except Exception as e:
             print(f'创建用户账号时出错: {e}')
-            # 即使创建用户账号失败，学生记录已经创建成功，不回滚
+            conn.rollback()
+            return jsonify({
+                'success': False,
+                'message': f'创建用户账号失败: {str(e)}'
+            }), 500
         
         return jsonify({
             'success': True,
             'message': '学生添加成功',
-            'data': {'id': new_id}
+            'data': {
+                'id': new_id,
+                'default_password': default_password,  # 返回默认密码
+                'username': data['username']
+            }
         })
         
     except Exception as e:
         print('添加学生失败:', e)
         if conn:
-            conn.close()
+            conn.rollback()
         return jsonify({
             'success': False,
             'message': str(e)
@@ -112,7 +128,7 @@ def add_student():
 def update_student(student_id):
     try:
         data = request.get_json()
-        print('接收到的更新学生数据:', data)  # 添加日志
+        print('接收到的更新学生数据:', data)
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -126,12 +142,12 @@ def update_student(student_id):
                     'message': '新学号已存在'
                 }), 400
         
-        # 更新学生信息
+        # 更新学生信息，加入enrollment_year
         cursor.execute('''
             UPDATE students 
-            SET name = ?, student_id = ?
+            SET username = ?, student_id = ?, enrollment_year = ?
             WHERE student_id = ?
-        ''', (data['name'], data['student_id'], student_id))
+        ''', (data['username'], data['student_id'], data.get('enrollment_year'), student_id))
         
         if cursor.rowcount == 0:
             conn.rollback()
@@ -173,8 +189,8 @@ def delete_student(student_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 获取学生的内部ID和姓名
-        cursor.execute('SELECT id, name FROM students WHERE student_id = ?', (student_id,))
+        # 获取学生的内部ID和用户名
+        cursor.execute('SELECT id, username FROM students WHERE student_id = ?', (student_id,))
         student = cursor.fetchone()
         if not student:
             return jsonify({
@@ -183,7 +199,7 @@ def delete_student(student_id):
             }), 404
 
         student_internal_id = student['id']
-        student_name = student['name']
+        student_username = student['username']
 
         # 删除相关的选课记录
         cursor.execute('DELETE FROM student_courses WHERE student_id = ?', (student_internal_id,))
@@ -192,7 +208,7 @@ def delete_student(student_id):
         # 删除学生
         cursor.execute('DELETE FROM students WHERE id = ?', (student_internal_id,))
         # 删除对应的用户账号
-        cursor.execute('DELETE FROM users WHERE username = ? AND role = ?', (student_name, 'student'))
+        cursor.execute('DELETE FROM users WHERE username = ? AND role = ?', (student_username, 'student'))
 
         conn.commit()
         return jsonify({
@@ -330,9 +346,9 @@ def update_student_profile(student_id):
         # 更新学生信息
         cursor.execute('''
             UPDATE students 
-            SET name = ?, student_id = ?, enrollment_year = ?
+            SET username = ?, student_id = ?, enrollment_year = ?
             WHERE student_id = ?
-        ''', (data['name'], data['student_id'], data.get('enrollment_year'), student_id))
+        ''', (data['username'], data['student_id'], data.get('enrollment_year'), student_id))
         
         # 如果提供了新密码，更新密码
         if 'new_password' in data and data['new_password']:
@@ -340,7 +356,7 @@ def update_student_profile(student_id):
                 UPDATE users 
                 SET password = ?
                 WHERE username = ?
-            ''', (data['new_password'], student['name']))
+            ''', (data['new_password'], student['username']))
             
         # 如果修改了学号，更新session中的学号
         if data['student_id'] != student_id:

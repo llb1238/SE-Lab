@@ -84,9 +84,9 @@ def update_admin_profile(admin_id):
         # 更新管理员信息
         cursor.execute('''
             UPDATE admins
-            SET name = ?, admin_id = ?
+            SET username = ?, admin_id = ?
             WHERE admin_id = ?
-        ''', (data['name'], data['admin_id'], admin_id))
+        ''', (data['username'], data['admin_id'], admin_id))
         
         # 如果提供了新密码，更新密码
         if 'new_password' in data and data['new_password']:
@@ -94,7 +94,7 @@ def update_admin_profile(admin_id):
                 UPDATE users 
                 SET password = ?
                 WHERE username = ?
-            ''', (data['new_password'], admin['name']))
+            ''', (data['new_password'], admin['username']))
             
         # 如果修改了管理员ID，更新session中的管理员ID
         if data['admin_id'] != admin_id:

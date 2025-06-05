@@ -137,10 +137,6 @@
           <small class="form-text text-muted">用户名不可修改</small>
         </div>
         <div class="form-group">
-          <label class="form-label">姓名</label>
-          <input type="text" class="form-control" id="name" required>
-        </div>
-        <div class="form-group">
           <label class="form-label">教师编号</label>
           <input type="text" class="form-control" id="teacherIdField" required>
           <small class="form-text text-muted">请确保教师编号格式正确</small>
@@ -181,6 +177,8 @@
           const teacherId = userData.data.teacher_id;
 
           $('#username').val(username);
+          // 更新显示用户名而非姓名
+          $('#teacherName').text(username);
 
           // 设置头像初始字母
           $('#avatarInitial').text(username.charAt(0).toUpperCase());
@@ -191,9 +189,7 @@
 
           if (teacherData.success) {
             const teacher = teacherData.data;
-            $('#teacherName').text(teacher.name);
             $('#teacherId').text(teacher.teacher_id);
-            $('#name').val(teacher.name);
             $('#teacherIdField').val(teacher.teacher_id);
           } else {
             showError('无法加载教师信息');
@@ -232,7 +228,7 @@
 
         // 准备更新数据
         const updateData = {
-          name: $('#name').val(),
+          username: $('#username').val(),
           teacher_id: $('#teacherIdField').val()
         };
 
@@ -256,7 +252,7 @@
           showSuccess();
 
           // 刷新显示的信息
-          $('#teacherName').text(updateData.name);
+          $('#teacherName').text(updateData.username);
           $('#teacherId').text(updateData.teacher_id);
 
           // 清空密码字段

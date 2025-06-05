@@ -27,52 +27,31 @@ def login():
 
         # 如果是学生，查找并保存学生ID
         if role == 'student':
-            cursor.execute('SELECT student_id FROM students WHERE name = ?', (username,))
+            cursor.execute('SELECT student_id FROM students WHERE username = ?', (username,))
             student = cursor.fetchone()
             if student:
                 session['student_id'] = student['student_id']
                 print(f"学生 {username} 登录成功，student_id: {student['student_id']}")
             else:
-                # 找不到对应的学生记录，自动创建一个
-                print(f"为用户 {username} 创建新的学生记录")
-                new_student_id = f"S{username}{user['id']:04d}"
-
-                try:
-                    cursor.execute('''
-                        INSERT INTO students (name, student_id)
-                        VALUES (?, ?)
-                    ''', (username, new_student_id))
-                    conn.commit()
-                    session['student_id'] = new_student_id
-                    print(f"为用户 {username} 创建学生记录成功，student_id: {new_student_id}")
-                except Exception as e:
-                    print(f"创建学生记录失败: {e}")
+                # 找不到对应的学生记录，返回错误而不是创建新记录
+                print(f"学生 {username} 登录失败：找不到对应的学生记录")
+                return jsonify({'success': False, 'message': '您的账号未关联到学生信息，请联系管理员'}), 400
 
         # 如果是教师，查找并保存教师ID
         elif role == 'teacher':
-            cursor.execute('SELECT teacher_id FROM teachers WHERE name = ?', (username,))
+            cursor.execute('SELECT teacher_id FROM teachers WHERE username = ?', (username,))
             teacher = cursor.fetchone()
             if teacher:
                 session['teacher_id'] = teacher['teacher_id']
                 print(f"教师 {username} 登录成功，teacher_id: {teacher['teacher_id']}")
             else:
-                # 找不到对应的教师记录，自动创建一个
-                new_teacher_id = f"T{username}{user['id']:04d}"
-
-                try:
-                    cursor.execute('''
-                        INSERT INTO teachers (name, teacher_id) 
-                        VALUES (?, ?)
-                    ''', (username, new_teacher_id))
-                    conn.commit()
-                    session['teacher_id'] = new_teacher_id
-                    print(f"为用户 {username} 创建教师记录成功，teacher_id: {new_teacher_id}")
-                except Exception as e:
-                    print(f"创建教师记录失败: {e}")
+                # 找不到对应的教师记录，返回错误
+                print(f"教师 {username} 登录失败：找不到对应的教师记录")
+                return jsonify({'success': False, 'message': '您的账号未关联到教师信息，请联系管理员'}), 400
 
         # 特殊处理管理员角色
         elif role == 'admin':
-            cursor.execute('SELECT admin_id FROM admins WHERE name = ?', (username,))
+            cursor.execute('SELECT admin_id FROM admins WHERE username = ?', (username,))
             admin = cursor.fetchone()
             if admin:
                 session['admin_id'] = admin['admin_id']
@@ -83,7 +62,7 @@ def login():
 
                 try:
                     cursor.execute('''
-                        INSERT INTO admins (name, admin_id)
+                        INSERT INTO admins (username, admin_id)
                         VALUES (?, ?)
                     ''', (username, new_admin_id))
                     conn.commit()
@@ -162,7 +141,7 @@ def register():
             try:
                 # 在students表中创建对应记录 - 不指定enrollment_year
                 cursor.execute('''
-                    INSERT INTO students (name, student_id)
+                    INSERT INTO students (username, student_id)
                     VALUES (?, ?)
                 ''', (username, student_id))
 
@@ -172,7 +151,7 @@ def register():
                 print(f"创建学生记录失败: {e}")
                 current_year = time.localtime().tm_year
                 cursor.execute('''
-                    INSERT INTO students (name, student_id, enrollment_year)
+                    INSERT INTO students (username, student_id, enrollment_year)
                     VALUES (?, ?, ?)
                 ''', (username, student_id, current_year))
                 print(f"使用默认年份创建学生记录: {student_id}, 年份: {current_year}")
@@ -188,7 +167,7 @@ def register():
 
             # 在teachers表中创建对应记录
             cursor.execute('''
-                INSERT INTO teachers (name, teacher_id)
+                INSERT INTO teachers (username, teacher_id)
                 VALUES (?, ?)
             ''', (username, teacher_id))
 
@@ -205,7 +184,7 @@ def register():
 
             # 在admins表中创建对应记录
             cursor.execute('''
-                INSERT INTO admins (name, admin_id)
+                INSERT INTO admins (username, admin_id)
                 VALUES (?, ?)
             ''', (username, admin_id))
 

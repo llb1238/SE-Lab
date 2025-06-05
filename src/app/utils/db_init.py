@@ -56,7 +56,7 @@ def create_tables(cursor):
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS admins (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT UNIQUE NOT NULL,
+        username TEXT UNIQUE NOT NULL,
         admin_id TEXT UNIQUE NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -66,7 +66,7 @@ def create_tables(cursor):
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS students (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
+        username TEXT NOT NULL,
         student_id TEXT UNIQUE NOT NULL,
         enrollment_year INTEGER NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -77,7 +77,7 @@ def create_tables(cursor):
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS teachers (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
+        username TEXT NOT NULL,
         teacher_id TEXT UNIQUE NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -152,37 +152,108 @@ def create_tables(cursor):
     )
     ''')
     
-    # 更新students表，确保enrollment_year可以为NULL
+    # 更新students表，移除name字段添加username字段（如果需要迁移现有数据）
     cursor.execute("PRAGMA table_info(students)")
     columns = cursor.fetchall()
-    has_enrollment_year_constraint = False
+    has_name_column = False
+    has_username_column = False
+    
     for column in columns:
-        if column['name'] == 'enrollment_year' and column['notnull'] == 1:
-            has_enrollment_year_constraint = True
-            break
+        if column['name'] == 'name':
+            has_name_column = True
+        if column['name'] == 'username':
+            has_username_column = True
             
-    if has_enrollment_year_constraint:
-        # SQLite不支持直接修改列约束，需要重建表
-        print("正在移除enrollment_year列的NOT NULL约束...")
+    if has_name_column and not has_username_column:
+        # SQLite不支持直接重命名列，需要创建新表
+        print("正在将students表中的name列改为username列...")
         # 创建临时表
         cursor.execute('''
         CREATE TABLE students_temp (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
+            username TEXT NOT NULL,
             student_id TEXT UNIQUE NOT NULL,
             enrollment_year INTEGER NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
-        # 复制数据
+        # 复制数据，使用name作为username
         cursor.execute('''
-        INSERT INTO students_temp (id, name, student_id, enrollment_year, created_at)
+        INSERT INTO students_temp (id, username, student_id, enrollment_year, created_at)
         SELECT id, name, student_id, enrollment_year, created_at FROM students
         ''')
         # 删除原表
         cursor.execute("DROP TABLE students")
         # 重命名临时表
         cursor.execute("ALTER TABLE students_temp RENAME TO students")
+    
+    # 同样更新teachers表
+    cursor.execute("PRAGMA table_info(teachers)")
+    columns = cursor.fetchall()
+    has_name_column = False
+    has_username_column = False
+    
+    for column in columns:
+        if column['name'] == 'name':
+            has_name_column = True
+        if column['name'] == 'username':
+            has_username_column = True
+            
+    if has_name_column and not has_username_column:
+        # SQLite不支持直接重命名列，需要创建新表
+        print("正在将teachers表中的name列改为username列...")
+        # 创建临时表
+        cursor.execute('''
+        CREATE TABLE teachers_temp (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            teacher_id TEXT UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        # 复制数据，使用name作为username
+        cursor.execute('''
+        INSERT INTO teachers_temp (id, username, teacher_id, created_at)
+        SELECT id, name, teacher_id, created_at FROM teachers
+        ''')
+        # 删除原表
+        cursor.execute("DROP TABLE teachers")
+        # 重命名临时表
+        cursor.execute("ALTER TABLE teachers_temp RENAME TO teachers")
+    
+    # 更新admins表，移除name字段添加username字段（如果需要迁移现有数据）
+    cursor.execute("PRAGMA table_info(admins)")
+    columns = cursor.fetchall()
+    has_name_column = False
+    has_username_column = False
+    
+    for column in columns:
+        if column['name'] == 'name':
+            has_name_column = True
+        if column['name'] == 'username':
+            has_username_column = True
+            
+    if has_name_column and not has_username_column:
+        # SQLite不支持直接重命名列，需要创建新表
+        print("正在将admins表中的name列改为username列...")
+        # 创建临时表
+        cursor.execute('''
+        CREATE TABLE admins_temp (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            admin_id TEXT UNIQUE NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        # 复制数据，使用name作为username
+        cursor.execute('''
+        INSERT INTO admins_temp (id, username, admin_id, created_at)
+        SELECT id, name, admin_id, created_at FROM admins
+        ''')
+        # 删除原表
+        cursor.execute("DROP TABLE admins")
+        # 重命名临时表
+        cursor.execute("ALTER TABLE admins_temp RENAME TO admins")
 
 def add_test_data(cursor):
     """向各表中添加测试数据"""
@@ -216,22 +287,22 @@ def add_test_data(cursor):
     ''', ('student', '123456', 'student', current_time))
     student_id = cursor.lastrowid
     
-    # 添加管理员记录
+    # 添加管理员记录 - 使用username而不是name
     cursor.execute('''
-    INSERT INTO admins (name, admin_id, created_at)
+    INSERT INTO admins (username, admin_id, created_at)
     VALUES (?, ?, ?)
     ''', ('admin', f'A{admin_id:04d}', current_time))
     
-    # 添加教师记录
+    # 添加教师记录 - 使用username而不是name
     cursor.execute('''
-    INSERT INTO teachers (name, teacher_id, created_at)
+    INSERT INTO teachers (username, teacher_id, created_at)
     VALUES (?, ?, ?)
     ''', ('teacher', f'T{teacher_id:04d}', current_time))
     teacher_record_id = cursor.lastrowid
     
-    # 添加学生记录
+    # 添加学生记录 - 使用username而不是name
     cursor.execute('''
-    INSERT INTO students (name, student_id, enrollment_year, created_at)
+    INSERT INTO students (username, student_id, enrollment_year, created_at)
     VALUES (?, ?, ?, ?)
     ''', ('student', f'S{student_id:04d}', 2023, current_time))
     student_record_id = cursor.lastrowid

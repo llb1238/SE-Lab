@@ -44,12 +44,26 @@ def add_course():
                     'success': False,
                     'message': f'缺少必要字段: {field}'
                 }), 400
+                
+        # 验证学分范围
+        try:
+            credit = float(data['credit'])
+            if credit <= 0 or credit > 6:
+                return jsonify({
+                    'success': False,
+                    'message': '学分必须在1-6之间'
+                }), 400
+        except (ValueError, TypeError):
+            return jsonify({
+                'success': False,
+                'message': '学分必须是有效的数字'
+            }), 400
 
         # 添加记录
         course_data = {
             'name': data['name'],
             'learn_time': data['learn_time'],
-            'credit': float(data['credit']),
+            'credit': credit,
             'usual_score': int(data['usual_score']),
             'midterm_score': int(data['midterm_score']),
             'final_score': int(data['final_score']),

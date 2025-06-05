@@ -137,10 +137,6 @@
           <small class="form-text text-muted">用户名不可修改</small>
         </div>
         <div class="form-group">
-          <label class="form-label">姓名</label>
-          <input type="text" class="form-control" id="name" required>
-        </div>
-        <div class="form-group">
           <label class="form-label">学号</label>
           <input type="text" class="form-control" id="studentIdField" required>
           <small class="form-text text-muted">请确保学号格式正确</small>
@@ -186,6 +182,8 @@
           const studentId = userData.data.student_id;
 
           $('#username').val(username);
+          // 更新显示用户名而非姓名
+          $('#studentName').text(username);
 
           // 设置头像初始字母
           $('#avatarInitial').text(username.charAt(0).toUpperCase());
@@ -196,9 +194,7 @@
 
           if (studentData.success) {
             const student = studentData.data;
-            $('#studentName').text(student.name);
             $('#studentId').text(student.student_id);
-            $('#name').val(student.name);
             $('#studentIdField').val(student.student_id);
             $('#enrollmentYear').val(student.enrollment_year || '');
           } else {
@@ -236,9 +232,9 @@
 
         const currentStudentId = userData.data.student_id;
 
-        // 准备更新数据
+        // 准备更新数据 - 移除name字段
         const updateData = {
-          name: $('#name').val(),
+          username: $('#username').val(),
           student_id: $('#studentIdField').val(),
           enrollment_year: $('#enrollmentYear').val() || null
         };

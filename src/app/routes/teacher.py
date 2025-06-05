@@ -32,7 +32,7 @@ def add_teacher():
         print('接收到的教师数据:', data)
         
         # 验证数据
-        required_fields = ['name', 'teacher_id', 'username']
+        required_fields = ['username', 'teacher_id']
         for field in required_fields:
             if field not in data:
                 return jsonify({
@@ -42,7 +42,7 @@ def add_teacher():
 
         # 添加记录
         teacher_data = {
-            'name': data['name'],
+            'username': data['username'],
             'teacher_id': data['teacher_id']
         }
         
@@ -60,11 +60,15 @@ def add_teacher():
                 (data['username'], default_password, 'teacher')
             )
             conn.commit()
-        
+            
         return jsonify({
             'success': True,
             'message': '教师添加成功',
-            'data': {'id': new_id}
+            'data': {
+                'id': new_id,
+                'default_password': default_password,  # 返回默认密码
+                'username': data['username']
+            }
         })
         
     except Exception as e:
@@ -79,7 +83,7 @@ def add_teacher():
 def update_teacher(teacher_id):
     try:
         data = request.get_json()
-        print('接收到的更新教师数据:', data)  # 添加日志
+        print('接收到的更新教师数据:', data)
         
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -96,9 +100,9 @@ def update_teacher(teacher_id):
         # 更新教师信息
         cursor.execute('''
             UPDATE teachers 
-            SET name = ?, teacher_id = ?
+            SET username = ?, teacher_id = ?
             WHERE teacher_id = ?
-        ''', (data['name'], data['teacher_id'], teacher_id))
+        ''', (data['username'], data['teacher_id'], teacher_id))
         
         if cursor.rowcount == 0:
             conn.rollback()
@@ -140,8 +144,8 @@ def delete_teacher(teacher_id):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # 获取教师的内部ID和姓名
-        cursor.execute('SELECT id, name FROM teachers WHERE teacher_id = ?', (teacher_id,))
+        # 获取教师的内部ID和用户名
+        cursor.execute('SELECT id, username FROM teachers WHERE teacher_id = ?', (teacher_id,))
         teacher = cursor.fetchone()
         if not teacher:
             return jsonify({
@@ -150,13 +154,13 @@ def delete_teacher(teacher_id):
             }), 404
             
         teacher_internal_id = teacher['id']
-        teacher_name = teacher['name']
+        teacher_username = teacher['username']
         
         # 删除相关记录
         cursor.execute('DELETE FROM teacher_courses WHERE teacher_id = ?', (teacher_internal_id,))
         cursor.execute('DELETE FROM teachers WHERE id = ?', (teacher_internal_id,))
         # 删除对应的用户账号
-        cursor.execute('DELETE FROM users WHERE username = ? AND role = ?', (teacher_name, 'teacher'))
+        cursor.execute('DELETE FROM users WHERE username = ? AND role = ?', (teacher_username, 'teacher'))
         
         conn.commit()
         return jsonify({
@@ -253,9 +257,9 @@ def update_teacher_profile(teacher_id):
         # 更新教师信息
         cursor.execute('''
             UPDATE teachers 
-            SET name = ?, teacher_id = ?
+            SET username = ?, teacher_id = ?
             WHERE teacher_id = ?
-        ''', (data['name'], data['teacher_id'], teacher_id))
+        ''', (data['username'], data['teacher_id'], teacher_id))
         
         # 如果提供了新密码，更新密码
         if 'new_password' in data and data['new_password']:
@@ -263,7 +267,7 @@ def update_teacher_profile(teacher_id):
                 UPDATE users 
                 SET password = ?
                 WHERE username = ?
-            ''', (data['new_password'], teacher['name']))
+            ''', (data['new_password'], teacher['username']))
             
         # 如果修改了教师ID，更新session中的教师ID
         if data['teacher_id'] != teacher_id:

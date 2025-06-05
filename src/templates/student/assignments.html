@@ -143,7 +143,7 @@
   <script>
     $(document).ready(function () {
       // 获取当前登录学生的ID
-      getStudentId().then(studentId => {
+      window.getCurrentStudentId().then(studentId => {
         if (studentId) {
           // 加载学生课程
           loadStudentCourses(studentId);
@@ -168,30 +168,6 @@
         }
       });
     });
-
-    // 获取当前登录学生的ID
-    async function getStudentId() {
-      try {
-        const userResponse = await fetch('/api/current-user');
-        const userData = await userResponse.json();
-
-        if (userData.success) {
-          const username = userData.data.username;
-
-          const studentsResponse = await window.getStudents();
-          if (studentsResponse.success) {
-            const student = studentsResponse.data.find(s => s.name === username);
-            if (student) {
-              return student.student_id;
-            }
-          }
-        }
-        return null;
-      } catch (error) {
-        console.error('获取学生ID失败:', error);
-        return null;
-      }
-    }
 
     // 加载学生课程
     async function loadStudentCourses(studentId) {

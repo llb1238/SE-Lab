@@ -136,10 +136,7 @@
           <input type="text" class="form-control" id="username" readonly>
           <small class="form-text text-muted">用户名不可修改</small>
         </div>
-        <div class="form-group">
-          <label class="form-label">姓名</label>
-          <input type="text" class="form-control" id="name" required>
-        </div>
+        <!-- 删除姓名字段 -->
         <div class="form-group">
           <label class="form-label">管理员编号</label>
           <input type="text" class="form-control" id="adminIdField" required>
@@ -181,6 +178,8 @@
           const adminId = userData.data.admin_id;
 
           $('#username').val(username);
+          // 更新显示用户名而非姓名
+          $('#adminName').text(username);
 
           // 设置头像初始字母
           $('#avatarInitial').text(username.charAt(0).toUpperCase());
@@ -191,9 +190,7 @@
 
           if (adminData.success) {
             const admin = adminData.data;
-            $('#adminName').text(admin.name);
             $('#adminId').text(admin.admin_id);
-            $('#name').val(admin.name);
             $('#adminIdField').val(admin.admin_id);
           } else {
             showError('无法加载管理员信息');
@@ -230,9 +227,9 @@
 
         const currentAdminId = userData.data.admin_id;
 
-        // 准备更新数据
+        // 准备更新数据 - 移除name字段
         const updateData = {
-          name: $('#name').val(),
+          username: $('#username').val(),
           admin_id: $('#adminIdField').val()
         };
 

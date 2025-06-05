@@ -22,7 +22,8 @@ window.getCurrentStudentId = async function () {
             console.log('获取到的学生列表:', studentsResponse);
 
             if (studentsResponse.success) {
-                const student = studentsResponse.data.find(s => s.name === username);
+                // 修改这里，使用username而不是name进行匹配
+                const student = studentsResponse.data.find(s => s.username === username);
                 if (student) {
                     console.log('找到匹配的学生:', student);
                     return student.student_id;
@@ -192,6 +193,11 @@ window.addTeacher = async function (teacherData) {
 window.updateTeacher = async function (teacherId, teacherData) {
     try {
         console.log('发送更新教师请求:', teacherData);
+        // 如果传入的是name字段，将其转换为username字段
+        if (teacherData.name && !teacherData.username) {
+            teacherData.username = teacherData.name;
+            delete teacherData.name;
+        }
         const response = await fetch(`${API_BASE_URL}/teachers/${teacherId}`, {
             method: 'PUT',
             headers: {

@@ -136,13 +136,9 @@
             <h3>注册教师</h3>
             <form id="teacherForm">
                 <div class="form-group">
-                    <label class="form-label">教师姓名:</label>
-                    <input type="text" class="form-control" name="name" required>
-                </div>
-                <div class="form-group">
                     <label class="form-label">用户名:</label>
                     <input type="text" class="form-control" name="username" required>
-                    <small class="form-text text-muted">用户名将用于登录系统，必须唯一</small>
+                    <small class="form-text text-muted">用户名将用于登录系统和显示，必须唯一</small>
                 </div>
                 <div class="form-group">
                     <label class="form-label">教师职工号:</label>
@@ -157,7 +153,7 @@
             <h3>查看教师课程</h3>
             <div class="form-group">
                 <label class="form-label">搜索教师:</label>
-                <input type="text" class="form-control" id="viewTeacherSearch" placeholder="输入工号或姓名搜索">
+                <input type="text" class="form-control" id="viewTeacherSearch" placeholder="输入工号搜索">
                 <select class="form-control mt-2" id="teacherSelect">
                     <option value="">选择教师</option>
                 </select>
@@ -206,10 +202,6 @@
                 </select>
             </div>
             <form id="modifyTeacherForm">
-                <div class="form-group">
-                    <label class="form-label">新教师姓名:</label>
-                    <input type="text" class="form-control" name="new_name" required>
-                </div>
                 <div class="form-group">
                     <label class="form-label">新教师职工号:</label>
                     <input type="text" class="form-control" name="new_teacher_id" required>
@@ -278,7 +270,7 @@
                     if (window.teachersList && window.teachersList.length > 0) {
                         window.teachersList.forEach(teacher => {
                             const option = `<option value="${teacher.teacher_id}">
-                                ${teacher.name} - ${teacher.teacher_id}
+                                ${teacher.username} - ${teacher.teacher_id}
                             </option>`;
                             selector.append(option);
                         });
@@ -327,7 +319,7 @@
                         window.teachersList = response.data;
 
                         response.data.forEach(teacher => {
-                            select.append(`<option value="${teacher.teacher_id}">${teacher.name} (${teacher.teacher_id})</option>`);
+                            select.append(`<option value="${teacher.teacher_id}">${teacher.username} (${teacher.teacher_id})</option>`);
                         });
 
                         console.log('教师列表已加载:', response.data.length, '条记录');
@@ -383,7 +375,6 @@
             e.preventDefault();
 
             const formData = {
-                name: $('input[name="name"]').val(),
                 username: $('input[name="username"]').val(),
                 teacher_id: $('input[name="teacher_id"]').val()
             };
@@ -401,10 +392,8 @@
                 });
         });
 
-        // 修改教师表单提交
-        $('#modifyTeacherForm').submit(function (e) {
-            e.preventDefault();
-
+        // 修改教师的函数
+        function modifyTeacher() {
             const teacherId = $('#modifyTeacherSelect').val();
             if (!teacherId) {
                 alert('请选择要修改的教师');
@@ -412,22 +401,25 @@
             }
 
             const formData = {
-                name: $('input[name="new_name"]').val(),
+                // 移除username字段，只保留teacher_id
                 teacher_id: $('input[name="new_teacher_id"]').val()
             };
 
             window.updateTeacher(teacherId, formData)
                 .then(response => {
                     if (response.success) {
-                        alert('教师信息更新成功');
+                        alert('教师信息修改成功');
                         $('#modifyTeacherForm')[0].reset();
-                        refreshAllData();
+                        $('#modifyTeacherSelect').val('');
+                        loadTeachers();
+                    } else {
+                        alert('修改失败: ' + response.message);
                     }
                 })
                 .catch(error => {
-                    alert('更新失败: ' + error.message);
+                    alert('修改失败: ' + error.message);
                 });
-        });
+        }
 
         // 安排课程
         function scheduleCourse() {
@@ -511,7 +503,7 @@
             if (teacherId && window.teachersList) {
                 const teacher = window.teachersList.find(t => t.teacher_id === teacherId);
                 if (teacher) {
-                    $('input[name="new_name"]').val(teacher.name);
+                    // 移除设置username的代码
                     $('input[name="new_teacher_id"]').val(teacher.teacher_id);
                 }
             }
@@ -532,12 +524,12 @@
             if (!window.teachersList) return;
 
             const filteredTeachers = window.teachersList.filter(teacher =>
-                teacher.name.toLowerCase().includes(searchText) ||
+                teacher.username.toLowerCase().includes(searchText) ||
                 teacher.teacher_id.toLowerCase().includes(searchText)
             );
 
             filteredTeachers.forEach(teacher => {
-                select.append(`<option value="${teacher.teacher_id}">${teacher.name} (${teacher.teacher_id})</option>`);
+                select.append(`<option value="${teacher.teacher_id}">${teacher.username} (${teacher.teacher_id})</option>`);
             });
         }
 

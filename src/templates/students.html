@@ -161,13 +161,9 @@
             <h3>注册学生</h3>
             <form id="studentForm">
                 <div class="form-group">
-                    <label>姓名:</label>
-                    <input type="text" class="form-control" name="name" required>
-                </div>
-                <div class="form-group">
                     <label>用户名:</label>
                     <input type="text" class="form-control" name="username" required>
-                    <small class="form-text text-muted">用户名将用于登录系统，必须唯一</small>
+                    <small class="form-text text-muted">用户名将用于登录系统和显示，必须唯一</small>
                 </div>
                 <div class="form-group">
                     <label>学号:</label>
@@ -211,10 +207,6 @@
                 </select>
             </div>
             <form id="modifyStudentForm">
-                <div class="form-group">
-                    <label>新姓名:</label>
-                    <input type="text" class="form-control" name="new_name" required>
-                </div>
                 <div class="form-group">
                     <label>新学号:</label>
                     <input type="text" class="form-control" name="new_student_id" required>
@@ -346,7 +338,7 @@
 
                 if (window.studentsList) {
                     window.studentsList.forEach(student => {
-                        select.append(`<option value="${student.student_id}">${student.name} (${student.student_id})</option>`);
+                        select.append(`<option value="${student.student_id}">${student.username} (${student.student_id})</option>`);
                     });
                 }
             });
@@ -374,12 +366,12 @@
             if (!window.studentsList) return;
 
             const filteredStudents = window.studentsList.filter(student =>
-                student.name.toLowerCase().includes(searchText.toLowerCase()) ||
+                student.username.toLowerCase().includes(searchText.toLowerCase()) ||
                 student.student_id.includes(searchText)
             );
 
             filteredStudents.forEach(student => {
-                select.append(`<option value="${student.student_id}">${student.name} (${student.student_id})</option>`);
+                select.append(`<option value="${student.student_id}">${student.username} (${student.student_id})</option>`);
             });
         }
 
@@ -456,7 +448,18 @@
                 .then(response => {
                     console.log('添加学生响应:', response);
                     if (response && response.success) {
-                        alert('学生注册成功');
+                        let successMessage = `学生注册成功！<br>`;
+
+                        // 显示默认密码信息
+                        if (response.data && response.data.default_password) {
+                            successMessage += `<br><strong>默认密码：</strong> ${response.data.default_password}<br>`;
+                            successMessage += `<strong>用户名：</strong> ${response.data.username}<br>`;
+                            successMessage += `<small>请记录这些信息并告知学生。</small>`;
+                        }
+
+                        // 使用alert或更优雅的方式显示信息
+                        alert(successMessage.replace(/<br>/g, '\n').replace(/<[^>]*>/g, ''));
+
                         $('#studentForm')[0].reset();
                         loadStudents();
                     } else {
@@ -478,8 +481,16 @@
             }
 
             const formData = new FormData($('#modifyStudentForm')[0]);
+            // 获取当前选中学生的username
+            let username = '';
+            if (window.studentsList) {
+                const student = window.studentsList.find(s => s.student_id === studentId);
+                if (student) {
+                    username = student.username;
+                }
+            }
             const updateData = {
-                name: formData.get('new_name'),
+                username: username, // 必须传递username
                 student_id: formData.get('new_student_id'),
                 enrollment_year: formData.get('new_enrollment_year') || null
             };
@@ -536,7 +547,8 @@
         function loadStudentForModify(studentId) {
             const student = window.studentsList.find(s => s.student_id === studentId);
             if (student) {
-                $('input[name="new_name"]').val(student.name);
+                // 去掉姓名字段
+                //$('input[name="new_name"]').val(student.username);
                 $('input[name="new_student_id"]').val(student.student_id);
                 $('input[name="new_enrollment_year"]').val(student.enrollment_year || '');
             }
